@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Yusuf Barlak</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Yusuf Barlak — Mekatronik mühendisliği öğrencisi ve oyun geliştirici. Oyun menüsü tarzında portföy.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow+Condensed:ital,wght@0,500;0,700;0,800;1,700;1,800&family=Barlow:wght@400;500;600&family=Bodoni+Moda:ital,opsz,wght@1,6..96,900&family=Caveat:wght@600&display=swap">
+<style>
+/* Layout: one-screen game shell. Menu stairs down the left, the character art stands on the right in front of a halftone sun, a help bar runs along the bottom. Each menu item opens its own staged scene: an arm hands over an ID card, a notebook opens, a project wheel turns around a head, a rotary phone dials. Single look on purpose: ink and paper for type, and a fixed vivid color set per section that the whole screen shifts to. */
+:root{
+  --ink:#0d0c10;          /* the night */
+  --ink-2:#18161d;        /* ray stripes, card shade */
+  --ink-3:#25222b;        /* hairlines on ink */
+  --paper:#fbfaf6;        /* stark paper white */
+  --paper-2:#cfcdc6;      /* muted paper text */
+  --page:#fffdf4;         /* notebook paper */
+  --skin:#ffd8c0;--skin-2:#f0968c;
+  --on-accent:#0d0c10;
+
+  --f-display:"Anton","Impact","Haettenschweiler","Arial Narrow Bold",sans-serif;
+  --f-heavy:"Archivo Black","Arial Black","Helvetica Neue",sans-serif;
+  --f-serif:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --f-ui:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --f-body:"Barlow","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --f-hand:"Caveat","Bradley Hand","Segoe Print",cursive;
+
+  --gut-l:max(16px, env(safe-area-inset-left, 0px));
+  --gut-r:max(16px, env(safe-area-inset-right, 0px));
+  --bar:64px;
+  color-scheme:light;
+}
+/* Every menu item owns a vivid color set; the whole screen shifts to it as you move through the menu. */
+@property --bg{syntax:"<color>";inherits:true;initial-value:#ff3e8a}
+@property --ray{syntax:"<color>";inherits:true;initial-value:#ff6aa6}
+@property --pop{syntax:"<color>";inherits:true;initial-value:#ffe14a}
+@property --deep{syntax:"<color>";inherits:true;initial-value:#a3124f}
+@property --a{syntax:"<angle>";inherits:false;initial-value:180deg}
+@property --hx{syntax:"<angle>";inherits:false;initial-value:0deg}
+#app{--bg:#ff3e8a;--ray:#ff6aa6;--pop:#ffe14a;--deep:#a3124f;
+  --accent:var(--pop);--accent-2:var(--deep);
+  background:var(--bg);transition:--bg .5s ease,--ray .5s ease,--pop .5s ease,--deep .5s ease}
+#app[data-sec="egitim"]{--bg:#1fb6ff;--ray:#5fcbff;--pop:#ff3e8a;--deep:#0a5c9c}
+#app[data-sec="projeler"]{--bg:#ffd21a;--ray:#ffe263;--pop:#9b5cff;--deep:#8a6400}
+#app[data-sec="yetenekler"]{--bg:#5fdc34;--ray:#8bea63;--pop:#ff5a1f;--deep:#26700e}
+#app[data-sec="iletisim"]{--bg:#9b5cff;--ray:#b386ff;--pop:#b6ff3a;--deep:#4a1aa0}
+
+html,body{height:100%}
+body{background:var(--ink);color:var(--paper);font-family:var(--f-body);overflow-x:hidden;overflow-y:auto}
+#app{height:100%;position:relative}
+button{font:inherit;color:inherit}
+a{color:inherit}
+kbd{font-family:var(--f-ui);font-weight:700;font-size:.82em;display:inline-block;min-width:1.7em;padding:.05em .4em;text-align:center;background:var(--paper);color:var(--ink);transform:skewX(-8deg)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ───────── stage ───────── */
+.stage{position:relative;height:100%;min-height:540px;overflow:hidden;isolation:isolate}
+.bg{position:absolute;inset:0;z-index:-1;overflow:hidden}
+.rays{position:absolute;left:68%;top:46%;width:240vmax;height:240vmax;margin:-120vmax 0 0 -120vmax;
+  background:repeating-conic-gradient(from 0deg,var(--bg) 0deg 4.5deg,var(--ray) 4.5deg 9deg);
+  animation:spin 180s linear infinite}
+.sun{position:absolute;left:68%;top:46%;width:min(66vh,48vw);aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:var(--accent);
+  box-shadow:0 0 0 14px var(--ink),0 0 0 20px var(--paper),0 0 0 26px var(--ink)}
+.sun-dots{position:absolute;left:68%;top:46%;width:min(110vh,80vw);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,var(--deep) 1.7px,transparent 2.2px) 0 0/9px 9px;
+  -webkit-mask:radial-gradient(circle,transparent 42%,#000 46%,transparent 70%);mask:radial-gradient(circle,transparent 42%,#000 46%,transparent 70%)}
+.shard{position:absolute;pointer-events:none}
+.shard.s1{left:-8vw;bottom:calc(var(--bar) - 10px);width:78vw;height:58vh;background:var(--paper);clip-path:polygon(0 88%,100% 54%,100% 62%,0 100%)}
+.shard.s2{left:-4vw;bottom:calc(var(--bar) - 30px);width:70vw;height:52vh;background:var(--accent);clip-path:polygon(0 98%,100% 64%,100% 67%,0 100%)}
+.shard.s3{right:-6vw;top:-4vh;width:46vw;height:30vh;background:var(--paper);clip-path:polygon(18% 0,100% 0,100% 30%,0 46%)}
+.grain{position:absolute;inset:0;background:radial-gradient(circle,rgba(13,12,16,.09) 1px,transparent 1.3px) 0 0/5px 5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* HUD: date */
+.hud{position:absolute;top:14px;left:var(--gut-l);z-index:5;display:flex;align-items:flex-end;gap:10px;transform:rotate(-5deg);transform-origin:left top}
+.date-dm{font:400 clamp(44px,6vw,78px)/.85 var(--f-display);color:var(--paper);text-shadow:4px 4px 0 var(--ink),6px 6px 0 var(--accent);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.date-side{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding-bottom:4px}
+.date-dw{font:800 clamp(18px,2vw,26px)/1 var(--f-ui);background:var(--accent);color:var(--on-accent);padding:2px 10px 1px;transform:skewX(-12deg)}
+.date-tod{font:700 clamp(12px,1.2vw,15px)/1 var(--f-ui);letter-spacing:.18em;background:var(--paper);color:var(--ink);padding:3px 8px 2px}
+
+/* brand */
+.brand{position:absolute;top:clamp(92px,13vh,128px);left:var(--gut-l);z-index:5;max-width:min(640px,62vw)}
+.ransom{margin:0;display:flex;flex-wrap:wrap;gap:.08em .5em;font-size:clamp(30px,4.2vw,60px);line-height:1}
+.ransom .w{display:flex;gap:.05em}
+.ransom .l{display:inline-block;padding:.08em .13em .02em;font-family:var(--f);font-size:var(--s,1em);background:var(--b);color:var(--c);transform:rotate(var(--r)) translateY(var(--y));box-shadow:3px 3px 0 var(--ink)}
+.role{margin:14px 0 0;display:inline-block;font:700 clamp(13px,1.35vw,17px)/1.25 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:5px 12px 4px;border-left:6px solid var(--accent);transform:skewX(-10deg)}
+.role span{display:inline-block;transform:skewX(10deg)}
+
+/* menu */
+.menu{position:absolute;left:var(--gut-l);bottom:calc(var(--bar) + clamp(20px,5vh,56px));z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(0px,.6vh,8px)}
+.mi{--i:0;position:relative;display:block;background:none;border:0;cursor:pointer;margin-left:calc(var(--i) * clamp(12px,2.4vw,40px));
+  padding:.04em .3em .02em .18em;font:400 clamp(40px,min(6.4vw,8.6vh),94px)/.9 var(--f-display);letter-spacing:.012em;color:var(--paper);
+  text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),2px 2px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink),7px 7px 0 var(--ink);transform:rotate(-4deg) skewX(-9deg);transition:transform .16s ease;
+  animation:slidein .5s cubic-bezier(.2,.9,.2,1) both;animation-delay:calc(var(--i) * 45ms)}
+.mi .t{position:relative;z-index:2}
+.mi::before{content:"";position:absolute;inset:-.02em -.16em -.04em -.1em;z-index:1;background:var(--ink);clip-path:polygon(2% 16%,100% 0,97% 84%,0 100%);transform:scaleX(0);transform-origin:left center;transition:transform .2s cubic-bezier(.2,.9,.2,1.25)}
+.mi::after{content:"";position:absolute;inset:-.2em -.42em -.12em -.04em;z-index:0;background:var(--paper);clip-path:polygon(0 42%,100% 6%,90% 100%,12% 78%);opacity:0;transform:translate(.14em,.08em) rotate(5deg);transition:opacity .1s}
+.mi.on{color:var(--pop);text-shadow:none;transform:rotate(-4deg) skewX(-9deg) scale(1.06)}
+.mi.on::before{transform:scaleX(1)}
+.mi.on::after{opacity:1}
+.mi:focus-visible{outline:3px dashed var(--ink);outline-offset:8px}
+@keyframes slidein{from{translate:-40px 0}to{translate:0 0}}
+
+/* character art */
+.char{position:absolute;right:clamp(0px,4vw,80px);bottom:calc(var(--bar) - 18px);height:calc((100% - var(--bar)) * var(--h,.86));width:56vw;margin:0;z-index:4;pointer-events:none}
+.char img{position:absolute;right:0;bottom:0;height:100%;width:auto;max-width:none;filter:drop-shadow(12px 6px 0 var(--deep)) drop-shadow(-5px 0 0 var(--ink));opacity:0;transition:opacity .18s}
+.char img.on{opacity:1;animation:artin .42s cubic-bezier(.2,.9,.2,1)}
+.char.flash img.on{filter:invert(1) drop-shadow(12px 6px 0 var(--deep))}
+@keyframes artin{from{transform:translateX(60px) skewX(-6deg)}to{transform:none}}
+
+/* cat navigator */
+.navi{position:absolute;top:12px;right:var(--gut-r);z-index:7;display:flex;align-items:flex-start;flex-direction:row-reverse;gap:10px;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.navi-pic{position:relative;width:clamp(64px,7vw,92px);aspect-ratio:1;flex:none;background:var(--paper);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);display:grid;place-items:center;transition:transform .2s}
+.navi-pic img{width:84%;height:84%;object-fit:cover;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.navi-name{position:absolute;right:0;top:calc(clamp(64px,7vw,92px) - 14px);font:800 13px/1 var(--f-ui);letter-spacing:.12em;background:var(--accent);color:var(--on-accent);padding:3px 7px 2px;transform:skewX(-12deg)}
+.bubble{position:relative;margin-top:10px;max-width:min(290px,28vw);background:var(--paper);color:var(--ink);font:600 14px/1.35 var(--f-body);padding:10px 14px 11px;clip-path:polygon(0 4%,95% 0,95% 38%,100% 46%,95% 58%,97% 100%,3% 96%)}
+.bubble b{font-family:var(--f-ui);font-weight:800;letter-spacing:.08em;display:block;font-size:11px;color:var(--accent-2);margin-bottom:3px}
+.bubble img{display:block;width:120px;margin-top:8px;filter:drop-shadow(4px 4px 0 var(--accent))}
+.navi:hover .navi-pic,.navi:focus-visible .navi-pic{transform:rotate(-8deg) scale(1.06)}
+.navi:focus-visible{outline:3px dashed var(--paper);outline-offset:4px}
+.navi.wiggle .navi-pic{animation:wig .35s}
+@keyframes wig{25%{transform:rotate(-14deg)}60%{transform:rotate(10deg)}}
+
+/* help bar */
+.helpbar{position:absolute;left:0;right:0;bottom:0;z-index:8;min-height:var(--bar);display:flex;align-items:center;gap:18px 26px;flex-wrap:wrap;
+  padding-left:var(--gut-l);padding-right:var(--gut-r);padding-block:16px 10px;background:var(--ink);clip-path:polygon(0 22%,100% 0,100% 100%,0 100%);
+  font:600 15px/1.3 var(--f-ui);letter-spacing:.04em}
+.hb-desc{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 280px}
+.hb-tag{flex:none;font:800 13px/1 var(--f-ui);letter-spacing:.14em;background:var(--accent);color:var(--on-accent);padding:4px 9px 3px;transform:skewX(-12deg)}
+.hb-desc span:last-child{min-width:0;color:var(--paper)}
+.hb-keys{display:flex;align-items:center;gap:6px;color:var(--paper-2);white-space:nowrap}
+.hb-keys kbd{margin-left:6px}
+.hb-opts{display:flex;align-items:center;gap:14px}
+.seg{display:flex;gap:2px}
+.seg button{background:var(--ink-3);border:0;cursor:pointer;font:800 13px/1 var(--f-ui);letter-spacing:.1em;padding:6px 9px 5px;color:var(--paper-2);transform:skewX(-10deg)}
+.seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
+.seg button:focus-visible{outline:2px dashed var(--paper);outline-offset:3px}
+
+/* ───────── panels (shared) ───────── */
+.panel{position:fixed;inset:0;z-index:50;overflow-y:auto;overflow-x:hidden;background:var(--bg);overscroll-behavior:contain}
+.panel::before{content:"";position:fixed;inset:0;background:repeating-linear-gradient(-58deg,var(--bg) 0 22px,var(--ray) 22px 44px);pointer-events:none}
+.p-art{position:fixed;right:0;bottom:0;height:90vh;width:44vw;margin:0;pointer-events:none;z-index:1}
+.p-art::before{content:"";position:absolute;right:6vw;bottom:14vh;width:min(70vh,36vw);aspect-ratio:1;border-radius:50%;background:var(--accent);box-shadow:0 0 0 12px var(--ink),0 0 0 18px var(--paper)}
+.p-art img{position:absolute;right:2vw;bottom:0;height:var(--ph,100%);width:auto;max-width:none;filter:drop-shadow(12px 6px 0 var(--accent-2)) drop-shadow(-5px 0 0 var(--ink));animation:artin .5s cubic-bezier(.2,.9,.2,1)}
+.p-wrap{position:relative;z-index:2;max-width:820px;padding-left:var(--gut-l);padding-right:var(--gut-r);padding-block:22px 72px;margin-left:clamp(0px,5vw,96px)}
+.p-wrap.wide{max-width:1280px;margin-inline:auto}
+.back{display:inline-flex;align-items:center;gap:10px;background:var(--paper);color:var(--ink);border:0;cursor:pointer;font:800 16px/1 var(--f-ui);letter-spacing:.14em;padding:9px 14px 8px;transform:skewX(-12deg);box-shadow:5px 5px 0 var(--ink)}
+.back kbd{background:var(--ink);color:var(--paper);transform:none}
+.back:hover{background:var(--accent);color:var(--on-accent)}
+.back:focus-visible{outline:3px dashed var(--ink);outline-offset:4px}
+.p-head{position:relative;margin:26px 0 30px}
+.p-kicker{font:800 14px/1.3 var(--f-ui);letter-spacing:.22em;text-transform:uppercase;color:var(--ink)}
+.p-title{position:relative;display:inline-block;margin:20px 0 0;font:400 clamp(58px,12vw,148px)/.84 var(--f-display);letter-spacing:.01em;color:var(--paper);transform:rotate(-4deg) skewX(-7deg);text-shadow:5px 5px 0 var(--pop);text-wrap:balance}
+.p-title::before{content:"";position:absolute;z-index:-1;left:-.12em;right:-.22em;top:.3em;bottom:-.08em;background:var(--ink);clip-path:polygon(0 10%,100% 0,97% 100%,3% 86%)}
+.wide .p-title{font-size:clamp(52px,8vw,112px)}
+.wide .p-head{margin:22px 0 18px}
+.p-thumb{display:none}
+.p-body{display:flex;flex-direction:column;gap:30px}
+.p-foot{margin-top:46px;font:800 13px/1.4 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+
+.h3{margin:0 0 14px;display:flex;align-items:center;gap:12px;font:800 clamp(20px,2.4vw,26px)/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.h3::before{content:"";width:22px;height:22px;background:var(--ink);clip-path:polygon(0 0,100% 50%,0 100%,22% 50%);flex:none}
+
+.cardw{filter:drop-shadow(8px 8px 0 var(--ink))}
+.card{background:var(--paper);color:var(--ink);padding:22px 24px 22px;clip-path:polygon(0 0,100% 1.5%,99% 100%,.8% 98%)}
+.card p{margin:0;font:500 17px/1.6 var(--f-body);max-width:62ch}
+.card p + p{margin-top:12px}
+.pill{display:inline-block;font:800 12px/1 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px 4px;background:var(--ink);color:var(--paper);transform:skewX(-10deg);vertical-align:middle}
+.pill.live{background:var(--accent);color:var(--on-accent);animation:blink 1.6s steps(2) infinite}
+@keyframes blink{50%{background:var(--ink);color:var(--paper)}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:700 14px/1 var(--f-ui);letter-spacing:.06em;padding:7px 11px 6px;border:2px solid var(--ink);transform:skewX(-8deg)}
+.lnk{display:inline-flex;align-items:center;gap:6px;font:800 14px/1 var(--f-ui);letter-spacing:.1em;text-transform:uppercase;text-decoration:none;background:var(--ink);color:var(--paper);padding:9px 12px 8px;transform:skewX(-10deg);white-space:nowrap}
+.lnk:hover{background:var(--pop);color:var(--ink)}
+.lnk:focus-visible{outline:3px dashed var(--ink);outline-offset:3px}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:28px;align-items:start}
+.polaroid{margin:6px 0 0;background:var(--paper);color:var(--ink);padding:10px 10px 14px;transform:rotate(4deg);box-shadow:8px 8px 0 var(--ink)}
+.polaroid img{display:block;width:100%;background:var(--ink)}
+.polaroid figcaption{font:600 22px/1.1 var(--f-hand);margin-top:8px;text-align:center}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.log li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:14px;align-items:baseline;font:600 16px/1.45 var(--f-body);color:var(--ink)}
+.log time{justify-self:start;font:800 14px/1 var(--f-ui);letter-spacing:.1em;color:var(--pop);background:var(--ink);padding:5px 8px 4px;transform:skewX(-10deg);font-variant-numeric:tabular-nums}
+
+/* panel reveals (each scene enters its own way) */
+.panel.rv{background:transparent}
+.panel.rv::before{animation:var(--rv) .6s cubic-bezier(.7,0,.25,1) both}
+@keyframes rvSide{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0)}}
+@keyframes rvSlash{from{clip-path:polygon(0 100%,0 100%,0 100%,0 100%)}55%{clip-path:polygon(0 30%,70% 0,30% 100%,0 100%)}to{clip-path:polygon(0 -40%,140% -40%,100% 100%,-40% 100%)}}
+@keyframes rvCircle{from{clip-path:circle(0 at 50% 110%)}to{clip-path:circle(150vmax at 50% 110%)}}
+.panel.rv .p-wrap > .back,.panel.rv .p-head{animation:fadeUp .45s .35s both}
+@keyframes fadeUp{from{opacity:0;translate:0 18px}}
+@keyframes fadeIn{from{opacity:0}}
+
+/* ───────── scene: profile (arm hands over an ID card) ───────── */
+.panel.pf-pre,.panel.pf-zoom{background:transparent;overflow:hidden}
+.panel.pf-pre::before{clip-path:circle(0px at var(--ox,50%) var(--oy,50%))}
+.panel.pf-zoom::before{clip-path:circle(150vmax at var(--ox,50%) var(--oy,50%));transition:clip-path .95s cubic-bezier(.6,0,.2,1) .62s}
+.pf-pre .p-wrap,.pf-zoom .p-wrap{visibility:hidden}
+.pf-in .p-wrap > .back,.pf-in .p-head,.pf-in .idc-hint,.pf-in .p-body > :not(.idc-slot),.pf-in .p-foot{animation:fadeUp .5s both}
+.pf-in .p-head{animation-delay:.05s}.pf-in .idc-hint{animation-delay:.15s}.pf-in .p-body > :nth-child(3){animation-delay:.22s}.pf-in .p-body > :nth-child(4){animation-delay:.3s}
+.pf-dim{position:fixed;inset:0;z-index:55;background:radial-gradient(circle,rgba(13,12,16,.5) 1.4px,transparent 1.9px) 0 0/7px 7px,rgba(13,12,16,.28);animation:fadeIn .3s both;transition:opacity .5s}
+.pf-band{position:fixed;left:-10vw;right:-10vw;top:24vh;height:52vh;z-index:56;background:var(--ink);clip-path:polygon(0 22%,100% 0,100% 78%,0 100%);animation:bandIn .5s cubic-bezier(.2,.9,.2,1) both;transition:opacity .4s}
+.pf-band::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--pop) 1.6px,transparent 2.2px) 0 0/11px 11px;opacity:.5;-webkit-mask:linear-gradient(100deg,transparent 35%,#000 90%);mask:linear-gradient(100deg,transparent 35%,#000 90%)}
+@keyframes bandIn{from{clip-path:polygon(0 22%,0 22%,0 100%,0 100%)}}
+.pf-arm{position:fixed;z-index:57;pointer-events:none;overflow:visible}
+.pf-arm.front{z-index:59}
+.pf-arm .pose-b{display:none}
+.pf-arm.palm .pose-a{display:none}
+.pf-arm.palm .pose-b{display:inline}
+.pf-move{animation:pfIn .85s cubic-bezier(.2,.9,.25,1.1) both,pfBob 2.4s ease-in-out .85s infinite}
+@keyframes pfIn{from{translate:75vw 8vh}}
+@keyframes pfBob{50%{translate:0 -10px}}
+.pf-cta{position:fixed;z-index:60;display:flex;align-items:center;gap:12px;font:400 clamp(30px,4vw,54px)/1 var(--f-display);color:var(--paper);transform:rotate(-6deg) skewX(-8deg);text-shadow:4px 4px 0 var(--pop);animation:fadeUp .4s .7s both;pointer-events:none;white-space:nowrap}
+.pf-cta kbd{font-size:16px;text-shadow:none}
+.pf-cta i{display:inline-block;width:.5em;height:.5em;background:var(--pop);clip-path:polygon(0 0,100% 50%,0 100%);animation:nudge .7s ease-in-out infinite alternate}
+@keyframes nudge{to{translate:.18em 0}}
+
+/* the ID card itself (same markup for the card in the hand and the full-size card) */
+.idc-slot{perspective:1800px}
+.idc{position:relative;width:min(760px,100%);aspect-ratio:1.586;container-type:inline-size;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.25,.5,1);cursor:pointer;outline:none}
+.idc.flipped{transform:rotateY(180deg)}
+.idc:focus-visible .idc-face{outline:4px dashed var(--ink);outline-offset:6px}
+.idc-fly{position:fixed;left:0;top:0;z-index:58;transform-origin:50% 50%;transition:none;margin:0}
+.idc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:2.8cqw;border:max(3px,.5cqw) solid var(--ink);overflow:hidden;color:var(--ink);box-shadow:1.4cqw 1.4cqw 0 var(--ink)}
+.idc-front{display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+  background:radial-gradient(circle at 88% 22%,transparent 0 6cqw,rgba(255,62,138,.0) 6cqw),repeating-radial-gradient(circle at 88% 22%,transparent 0 1.2cqw,rgba(255,62,138,.14) 1.2cqw 1.35cqw),repeating-linear-gradient(115deg,transparent 0 2cqw,rgba(255,225,74,.18) 2cqw 2.2cqw),var(--paper)}
+.idc-top{display:flex;justify-content:space-between;align-items:center;gap:2cqw;background:var(--ink);color:var(--paper);padding:1.6cqw 2.6cqw;font:800 2cqw/1 var(--f-ui);letter-spacing:.18em;text-transform:uppercase}
+.idc-top b{color:var(--pop);font-weight:800}
+.idc-body{display:grid;grid-template-columns:30% minmax(0,1fr);gap:2.6cqw;padding:2.4cqw 2.8cqw 0;min-height:0}
+.idc-photo{position:relative;align-self:start;aspect-ratio:.8;background:var(--bg);border:max(2px,.4cqw) solid var(--ink);border-radius:1.4cqw;overflow:hidden}
+.idc-photo::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--deep) .25cqw,transparent .32cqw) 0 0/1.2cqw 1.2cqw;opacity:.35}
+.idc-photo img{position:absolute;left:52%;bottom:-6%;width:128%;max-width:none;transform:translateX(-50%)}
+.idc-fields{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:1.3cqw 2.2cqw;align-content:start}
+.idc-fields dt{font:800 1.7cqw/1.9 var(--f-ui);letter-spacing:.18em;color:var(--deep);text-transform:uppercase;white-space:nowrap}
+.idc-fields dd{margin:0;font:600 2.45cqw/1.3 var(--f-body);min-width:0}
+.idc-fields dd.idc-name{font:400 4.8cqw/1 var(--f-display);letter-spacing:.01em}
+.idc-fields .pill{font-size:1.6cqw;padding:.6cqw 1cqw .5cqw}
+.idc-foot{display:flex;justify-content:space-between;align-items:flex-end;padding:1cqw 2.8cqw 2cqw}
+.idc-sig{font:600 4.4cqw/1 var(--f-hand);transform:rotate(-4deg);border-bottom:.3cqw solid var(--ink);padding:0 1cqw .4cqw}
+.idc-holo{width:8cqw;height:6cqw;border-radius:1cqw;border:.3cqw solid var(--ink);background:conic-gradient(from var(--hx),#ff3e8a,#ffd21a,#5fdc34,#1fb6ff,#9b5cff,#ff3e8a);animation:holo 4s linear infinite}
+@keyframes holo{to{--hx:360deg}}
+.idc-back{transform:rotateY(180deg);background:repeating-linear-gradient(-58deg,var(--paper) 0 2cqw,#f2efe6 2cqw 4cqw);display:flex;flex-direction:column}
+.idc-stripe{height:17%;margin-top:7%;background:var(--ink)}
+.idc-sigbox{display:flex;align-items:center;gap:2cqw;margin:5% 6% 0}
+.idc-sigbox span{font:800 1.6cqw/1 var(--f-ui);letter-spacing:.18em}
+.idc-sigbox b{flex:1;font:600 4.4cqw/1.5 var(--f-hand);padding:0 2cqw;background:repeating-linear-gradient(90deg,#fff 0 1cqw,#ffe9a0 1cqw 2cqw);border:.3cqw solid var(--ink)}
+.idc-bar{height:13%;margin:5% 6% 0;width:40%;background:repeating-linear-gradient(90deg,var(--ink) 0 .45cqw,transparent .45cqw .8cqw,var(--ink) .8cqw 1.6cqw,transparent 1.6cqw 2cqw,var(--ink) 2cqw 2.3cqw,transparent 2.3cqw 2.9cqw)}
+.idc-fine{margin:4% 6% 0;max-width:56%;font:500 1.75cqw/1.45 var(--f-body)}
+.idc-stamp{position:absolute;right:5%;bottom:8%;width:24cqw;height:24cqw;transform:rotate(-14deg);color:var(--deep);opacity:.85}
+.idc-hint{margin:16px 0 0;font:600 22px/1.2 var(--f-hand);color:var(--ink)}
+
+/* ───────── scene: education (a notebook opens) ───────── */
+.bk-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:8px}
+.book{--pw:min(540px,calc((100vw - 64px) / 2));position:relative;display:grid;grid-template-columns:1fr 1fr;width:calc(var(--pw) * 2);perspective:2800px;transform:translateX(-25%);transition:transform 1.05s cubic-bezier(.6,0,.25,1)}
+.book.open{transform:none}
+.book > *{grid-row:1;grid-column:2;min-width:0}
+.book.drop{animation:bkDrop .75s cubic-bezier(.3,1.35,.5,1) .25s both}
+@keyframes bkDrop{from{translate:0 -110vh;rotate:-16deg}}
+.bk-cover,.bk-leaf{position:relative;transform-origin:0 50%;transform-style:preserve-3d;transition:transform 1.05s cubic-bezier(.6,0,.25,1)}
+.bk-cover{z-index:3}
+.bk-leaf{z-index:2}
+.book.open .bk-cover{transform:rotateY(-180deg)}
+.book.turned .bk-leaf{transform:rotateY(-180deg)}
+.bk-face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.bk-front{position:absolute;inset:0}
+.bk-in,.bk-l-back{transform:rotateY(180deg)}
+.bk-in{height:100%}
+.bk-l-back{position:absolute;inset:0}
+.book.no-tr,.book.no-tr *{transition:none!important;animation:none!important}
+.book.narrow{width:100%;grid-template-columns:1fr;transform:none}
+.book.narrow > *{grid-column:1}
+.book.narrow.open .bk-cover{visibility:hidden;transition:transform 1.05s cubic-bezier(.6,0,.25,1),visibility 0s 1.05s}
+
+.cv{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;gap:16px;padding:30px 28px 28px 60px;border:4px solid var(--ink);border-radius:6px 20px 20px 6px;background:var(--deep);color:var(--paper);overflow:hidden;
+  box-shadow:5px 4px 0 -1px var(--page),5px 4px 0 2px var(--ink),10px 8px 0 -1px var(--page),10px 8px 0 2px var(--ink),18px 16px 0 2px var(--ink)}
+.cv::before{content:"";position:absolute;left:0;top:0;bottom:0;width:34px;background:var(--ink);box-shadow:inset -6px 0 0 rgba(255,255,255,.12)}
+.cv::after{content:"";position:absolute;right:-12%;top:-10%;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,var(--bg) 2px,transparent 2.6px) 0 0/11px 11px;opacity:.55}
+.cv > *{position:relative;z-index:1}
+.cv-top{display:flex;justify-content:space-between;gap:12px;font:800 15px/1 var(--f-ui);letter-spacing:.2em}
+.cv-title{font:400 clamp(56px,8vw,104px)/.85 var(--f-display);transform:rotate(-6deg) skewX(-6deg);text-shadow:5px 5px 0 var(--pop),9px 9px 0 var(--ink)}
+.cv-label{align-self:flex-start;background:var(--page);color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:12px 16px;min-width:min(300px,100%);font:600 15px/1 var(--f-body);display:grid;gap:9px;transform:rotate(-2deg);box-shadow:5px 5px 0 var(--ink)}
+.cv-label div{display:flex;gap:10px;align-items:baseline;border-bottom:2px dotted var(--ink);padding-bottom:5px}
+.cv-label small{font:800 11px/1 var(--f-ui);letter-spacing:.14em;flex:none}
+.cv-label b{font:600 22px/1 var(--f-hand)}
+.cv-star{position:absolute;right:26px;bottom:24px;width:120px;height:120px;color:var(--pop);transform:rotate(12deg)}
+
+.pg{position:relative;box-sizing:border-box;height:100%;min-height:min(600px,74vh);padding:34px 32px 56px 64px;color:var(--ink);border:4px solid var(--ink);
+  background:linear-gradient(90deg,transparent 44px,var(--pop) 44px 46px,transparent 46px),repeating-linear-gradient(transparent 0 31px,rgba(10,92,156,.22) 31px 32px) 0 22px,var(--page)}
+.pg::after{content:attr(data-n);position:absolute;left:0;right:0;bottom:16px;text-align:center;font:600 24px/1 var(--f-hand)}
+.pg-l{border-radius:16px 0 0 16px;border-right-width:2px;box-shadow:inset -46px 0 46px -34px rgba(13,12,16,.4),-8px 10px 0 var(--ink)}
+.pg-r{border-radius:0 16px 16px 0;border-left-width:2px;box-shadow:inset 46px 0 46px -34px rgba(13,12,16,.4),10px 10px 0 var(--ink)}
+.narrow .pg{border-radius:6px 16px 16px 6px;border-width:4px;box-shadow:inset 30px 0 30px -24px rgba(13,12,16,.3),8px 8px 0 var(--ink)}
+.pg-tab{display:inline-block;font:800 13px/1 var(--f-ui);letter-spacing:.2em;background:var(--ink);color:var(--paper);padding:6px 10px 5px;transform:skewX(-10deg);margin-bottom:16px}
+.pg-h{margin:0;font:400 clamp(28px,3.4vw,40px)/1.02 var(--f-display);letter-spacing:.01em;text-wrap:balance}
+.pg-sub{margin:8px 0 18px;font:600 17px/1.45 var(--f-body);max-width:40ch}
+.pg-dates{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;font:800 clamp(20px,2.4vw,27px)/1 var(--f-ui);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.pg-dates i{font-style:normal;color:var(--pop)}
+.pg-dates small{font-size:.5em;letter-spacing:.14em}
+.prog{margin-top:22px}
+.prog-bar{position:relative;height:22px;background:var(--paper);border:3px solid var(--ink);border-radius:4px}
+.prog-bar > i{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(-45deg,var(--pop) 0 8px,var(--deep) 8px 11px);transition:width 1.4s cubic-bezier(.2,.9,.2,1)}
+.filled .prog-bar > i{width:var(--p)}
+.prog-bar > b{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--ink)}
+.prog-meta{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font:800 14px/1.2 var(--f-ui);letter-spacing:.12em;text-transform:uppercase}
+.pg-note{display:inline-block;margin:14px 0 0;font:600 25px/1.1 var(--f-hand);color:var(--deep);transform:rotate(-3deg)}
+.pg .chips{margin-top:20px}
+.pg-doodle{position:absolute;right:24px;top:30px;font:600 23px/1.2 var(--f-hand);color:var(--deep);opacity:.55;transform:rotate(-7deg);white-space:pre;text-align:right;pointer-events:none}
+.cts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.ct{display:grid;grid-template-columns:78px minmax(0,1fr);gap:4px 16px;align-items:center;padding-bottom:12px;border-bottom:2px dashed rgba(13,12,16,.3)}
+.ct-stamp{grid-row:span 2;display:grid;place-items:center;width:72px;aspect-ratio:1;border:3px solid var(--pop);border-radius:50%;color:var(--pop);font:400 21px/.9 var(--f-display);text-align:center;transform:rotate(-12deg);font-variant-numeric:tabular-nums}
+.ct-stamp small{display:block;font:800 11px/1 var(--f-ui);letter-spacing:.14em}
+.ct:nth-child(even) .ct-stamp{transform:rotate(9deg)}
+.ct-name{font:700 19px/1.2 var(--f-ui);letter-spacing:.02em}
+.ct-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
+.ct-org{font:500 14px/1.3 var(--f-body)}
+.bk-nav{display:flex;align-items:center;gap:12px}
+.bk-nav button{border:0;cursor:pointer;background:var(--ink);color:var(--paper);font:800 14px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;padding:10px 13px 9px;transform:skewX(-10deg)}
+.bk-nav button:disabled{opacity:.35;cursor:default}
+.bk-nav span{font:800 15px/1 var(--f-ui);letter-spacing:.14em;color:var(--ink);white-space:nowrap}
+.bk-nav button{white-space:nowrap}
+.bk-nav button:focus-visible{outline:3px dashed var(--ink);outline-offset:3px}
+
+/* ───────── scene: projects (wheel around the head) ───────── */
+.pj{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);align-items:center;gap:12px 24px}
+.pj-stage{position:relative;width:100%;aspect-ratio:1/.86;min-width:0;touch-action:pan-x;user-select:none;-webkit-user-select:none}
+.pj-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.pj-ring{z-index:1}
+.pj-ring .band-u{fill:none;stroke:var(--paper);stroke-linecap:round}
+.pj-ring .band{fill:none;stroke:var(--ink);stroke-linecap:round}
+.pj-ring .band-in{fill:none;stroke:var(--pop);stroke-linecap:round;stroke-dasharray:2 14}
+#pj-ticks{transition:transform .55s cubic-bezier(.3,1.3,.5,1)}
+.pj-head{position:absolute;z-index:0;max-width:none;pointer-events:none;filter:drop-shadow(12px 6px 0 var(--pop)) drop-shadow(-5px 0 0 var(--ink))}
+.pj-node{--a:180deg;--s:58px;position:absolute;z-index:2;left:var(--cx);top:var(--cy);width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);padding:0;border:0;background:none;cursor:pointer;
+  transform:rotate(var(--a)) translateX(var(--R)) rotate(calc(-1 * var(--a)));transition:--a .55s cubic-bezier(.3,1.25,.5,1),opacity .3s,width .3s,height .3s,margin .3s}
+.pj-node.jump{transition:opacity .3s}
+.pj-node.far{opacity:0;pointer-events:none}
+.pj-node .dia{position:absolute;inset:0;background:var(--paper);border:4px solid var(--ink);transform:rotate(45deg);box-shadow:5px 5px 0 var(--ink);transition:background .2s}
+.pj-node svg{position:relative;width:56%;height:56%;margin:22%;color:var(--ink)}
+.pj-node.on{--s:86px;z-index:3}
+.pj-node.on .dia{background:var(--pop)}
+.pj-node:not(.on):hover .dia{background:var(--ray)}
+.pj-node:focus-visible{outline:3px dashed var(--ink);outline-offset:10px}
+.pj-lbl{position:absolute;right:calc(100% + 30px);top:50%;width:max-content;max-width:230px;transform:translateY(-50%) skewX(-8deg);text-align:right;font:400 21px/1.05 var(--f-display);color:var(--ink);letter-spacing:.01em;pointer-events:none;transition:font-size .3s,color .3s,background .3s,padding .3s}
+.pj-node.on .pj-lbl{font-size:30px;max-width:260px;color:var(--paper);background:var(--ink);padding:6px 14px 4px;box-shadow:5px 5px 0 var(--pop)}
+.pj-arr{position:absolute;z-index:3;width:54px;height:54px;margin:-27px 0 0 -27px;padding:0;border:0;cursor:pointer;background:none;transition:transform .15s;
+  filter:drop-shadow(3px 0 0 var(--ink)) drop-shadow(-3px 0 0 var(--ink)) drop-shadow(0 3px 0 var(--ink)) drop-shadow(0 -3px 0 var(--ink)) drop-shadow(4px 4px 0 var(--ink))}
+.pj-arr .tri{position:absolute;inset:4px;background:var(--pop);clip-path:polygon(50% 0,100% 90%,0 90%);transition:background .15s}
+.pj-arr.down .tri{clip-path:polygon(0 10%,100% 10%,50% 100%)}
+.pj-arr:hover .tri{background:var(--paper)}
+.pj-arr:active{transform:scale(.88)}
+.pj-arr:focus-visible{outline:3px dashed var(--ink);outline-offset:6px;border-radius:50%}
+.pj-info{min-width:0}
+.pj-card{position:relative;background:var(--paper);color:var(--ink);padding:24px 26px 24px;clip-path:polygon(0 2%,100% 0,98% 100%,2% 97%);display:flex;flex-direction:column;gap:12px;animation:pjCard .38s cubic-bezier(.2,.9,.2,1) both}
+.pj-card.up{animation-name:pjCardUp}
+@keyframes pjCard{from{opacity:0;translate:0 26px;rotate:2deg}}
+@keyframes pjCardUp{from{opacity:0;translate:0 -26px;rotate:-2deg}}
+.pj-infow{filter:drop-shadow(9px 9px 0 var(--ink))}
+.pj-count{position:absolute;right:20px;top:16px;font:400 34px/1 var(--f-display);color:var(--pop);-webkit-text-stroke:2px var(--ink);font-variant-numeric:tabular-nums}
+.pj-name{margin:0;font:400 clamp(32px,3.6vw,50px)/.95 var(--f-display);letter-spacing:.01em;padding-right:70px;text-wrap:balance}
+.pj-desc{margin:0;font:500 16px/1.55 var(--f-body)}
+.pj-card .lnk{align-self:flex-start}
+.pj-help{margin:12px 4px 0;font:600 21px/1.2 var(--f-hand);color:var(--ink)}
+.pj.intro .pj-head{animation:pjHead .75s cubic-bezier(.2,.9,.2,1) .2s both}
+@keyframes pjHead{from{translate:-70vw 0;rotate:-10deg}}
+.pj.intro .band,.pj.intro .band-u{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw .7s cubic-bezier(.6,0,.3,1) .55s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pj.intro .pj-node{animation:pop .4s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(.9s + var(--k) * .09s)}
+@keyframes pop{from{scale:0}}
+.pj.intro .pj-arr{animation:fadeIn .3s 1.2s both}
+.pj.intro .pj-infow{animation:pjInfo .6s cubic-bezier(.2,.9,.2,1) .7s both}
+@keyframes pjInfo{from{translate:60vw 0;rotate:6deg}}
+
+/* ───────── scene: contact (rotary phone) ───────── */
+.ph{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:24px 34px;align-items:center}
+.ph-stage{position:relative;width:100%;max-width:560px;justify-self:center}
+.ph-svg{display:block;width:100%;height:auto;overflow:visible}
+.ph-svg text{font-family:var(--f-display);user-select:none;-webkit-user-select:none}
+.ph-hole{fill:transparent;cursor:grab;touch-action:none}
+.ph-hole:active{cursor:grabbing}
+.ph-hole:hover + .ph-hl,.ph-hole.hint + .ph-hl{opacity:1}
+.ph-hl{fill:none;stroke:var(--pop);stroke-width:6;opacity:0;pointer-events:none;transition:opacity .15s}
+#ph-hs{transform-box:fill-box;transform-origin:50% 100%}
+.ph.ring #ph-hs{animation:ringing .08s linear 12 alternate}
+@keyframes ringing{from{transform:rotate(-4deg) translateY(-8px)}to{transform:rotate(4deg) translateY(-14px)}}
+.ph-zirr{position:absolute;left:2%;top:-2%;font:400 clamp(34px,5vw,62px)/1 var(--f-display);color:var(--pop);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:5px 5px 0 var(--ink);transform:rotate(-12deg);opacity:0;pointer-events:none}
+.ph.ring .ph-zirr{animation:zirr .95s steps(1) both}
+.ph-zirr.r2{left:auto;right:0;top:4%;transform:rotate(10deg)}
+@keyframes zirr{0%{opacity:1;scale:1}25%{scale:1.15}50%{scale:1}75%{scale:1.15}100%{opacity:0}}
+.ph.intro .ph-stage{animation:phUp .8s cubic-bezier(.2,1.25,.4,1) .15s both}
+@keyframes phUp{from{translate:0 80vh;rotate:8deg}}
+.ph.intro .ph-side{animation:pjInfo .6s cubic-bezier(.2,.9,.2,1) .55s both}
+.ph-side{display:flex;flex-direction:column;gap:18px;min-width:0}
+.ph-tkw{filter:drop-shadow(9px 9px 0 var(--ink))}
+.ph-tk{position:relative;background:var(--paper);color:var(--ink);padding:20px 24px 22px;clip-path:polygon(0 0,100% 0,100% 40%,97% 46%,100% 52%,100% 100%,0 100%,0 52%,3% 46%,0 40%);display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 18px;align-items:center;min-height:170px}
+.ph-dig{grid-row:span 3;position:relative;display:grid;place-items:center;width:88px;height:108px;background:var(--ink);color:var(--paper);border-radius:8px;font:400 76px/1 var(--f-display);font-variant-numeric:tabular-nums;overflow:hidden}
+.ph-dig::after{content:"";position:absolute;left:0;right:0;top:50%;height:3px;background:var(--bg)}
+.ph-dig.flip{animation:flip .22s ease-out}
+@keyframes flip{from{transform:rotateX(70deg);filter:brightness(1.8)}}
+.ph-line{font:800 13px/1 var(--f-ui);letter-spacing:.2em;color:var(--deep);text-transform:uppercase}
+.ph-label{font:400 clamp(30px,3.4vw,44px)/1 var(--f-display);letter-spacing:.01em;overflow-wrap:anywhere}
+.ph-handle{font:600 16px/1.35 var(--f-body);overflow-wrap:anywhere}
+.ph-tk .lnk{grid-column:1/-1;justify-self:start;margin-top:10px}
+.ph-tk .lnk.wait{visibility:hidden}
+.ph-dir{background:var(--page);color:var(--ink);border:3px solid var(--ink);border-radius:6px;padding:12px 16px 14px;box-shadow:6px 6px 0 var(--ink);transform:rotate(-1.5deg);
+  background-image:repeating-linear-gradient(transparent 0 33px,rgba(74,26,160,.2) 33px 34px);background-position:0 40px}
+.ph-dir h3{margin:0 0 6px;font:800 14px/1 var(--f-ui);letter-spacing:.2em}
+.ph-dir ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.ph-dir button{width:100%;display:flex;align-items:baseline;gap:10px;border:0;background:none;cursor:pointer;padding:6px 2px 5px;text-align:left;font:600 18px/1.2 var(--f-body);color:var(--ink)}
+.ph-dir button b{font:400 22px/1 var(--f-display);min-width:1ch}
+.ph-dir button:hover{background:var(--pop)}
+.ph-dir button:focus-visible{outline:3px dashed var(--ink);outline-offset:1px}
+.ph-help{margin:0;font:600 21px/1.2 var(--f-hand);color:var(--ink)}
+
+/* skills */
+.sk-group + .sk-group{margin-top:8px}
+.tile{filter:drop-shadow(6px 6px 0 var(--ink))}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:14px}
+.tile{position:relative;background:var(--paper);color:var(--ink);padding:16px 16px 15px;clip-path:polygon(0 0,100% 3%,98% 100%,2% 97%);display:flex;flex-direction:column;gap:8px;min-width:0}
+.tile-g{font:400 40px/.9 var(--f-display);letter-spacing:.01em}
+.tile-g.long{font-size:30px}
+.tile-n{font:800 15px/1.1 var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-2)}
+.tile-e{font:500 14px/1.45 var(--f-body)}
+.tile::after{content:"";position:absolute;right:10px;top:10px;width:14px;height:14px;background:var(--bg);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+
+/* wipe transition */
+.wipe{position:fixed;inset:0;z-index:90;pointer-events:none;overflow:hidden}
+.wipe i{position:absolute;top:-20%;bottom:-20%;left:0;width:150%;transform:translateX(-160%) skewX(-18deg)}
+.wipe i:nth-child(1){background:var(--accent)}
+.wipe i:nth-child(2){background:var(--paper)}
+.wipe i:nth-child(3){background:var(--ink)}
+
+/* ───────── responsive ───────── */
+@media (max-width:1100px){
+  .p-art{display:none}
+  .p-thumb{display:block;position:absolute;right:0;top:-18px;height:180px;width:auto;max-width:42%;object-fit:contain;object-position:right bottom;filter:drop-shadow(8px 4px 0 var(--accent));z-index:-1}
+  .pj-lbl{display:none}
+}
+@media (max-width:900px){
+  .pj,.ph{grid-template-columns:minmax(0,1fr)}
+  .pj-stage{max-width:560px;justify-self:center}
+  .ph-stage{max-width:440px}
+}
+@media (max-width:820px){
+  :root{--bar:96px}
+  .char{width:70vw;right:-4vw;height:calc((100% - var(--bar)) * var(--h,.86) * .82)}
+  .sun{left:72%;top:42%;width:min(50vh,74vw)}
+  .sun-dots,.rays{left:72%;top:42%}
+  .hb-keys{display:none}
+  .helpbar{gap:8px 14px;padding-block:20px 10px;font-size:14px}
+  .hb-desc{flex-basis:100%}
+  .split{grid-template-columns:minmax(0,1fr)}
+  .polaroid{max-width:240px}
+}
+@media (max-width:620px){
+  .idc{aspect-ratio:.63;width:min(360px,100%)}
+  .idc-face{border-radius:5cqw;border-width:max(3px,1cqw);box-shadow:2.4cqw 2.4cqw 0 var(--ink)}
+  .idc-top{font-size:3.6cqw;padding:3.2cqw 4.4cqw}
+  .idc-body{grid-template-columns:minmax(0,1fr);gap:3.6cqw;padding:4.4cqw 5cqw 0}
+  .idc-photo{width:44%;aspect-ratio:.82;border-radius:3cqw;border-width:max(2px,.8cqw)}
+  .idc-fields{gap:1cqw 3.4cqw}
+  .idc-fields dt{font-size:2.9cqw}
+  .idc-fields dd{font-size:3.9cqw}
+  .idc-fields dd.idc-name{font-size:6.6cqw}
+  .idc-fields .pill{font-size:2.8cqw;padding:1cqw 1.8cqw .8cqw}
+  .idc-foot{padding:2cqw 5cqw 4cqw}
+  .idc-sig{font-size:8cqw}
+  .idc-holo{width:14cqw;height:10cqw;border-radius:2cqw}
+  .idc-back{background:repeating-linear-gradient(-58deg,var(--paper) 0 4cqw,#f2efe6 4cqw 8cqw)}
+  .idc-stripe{height:11%;margin-top:10%}
+  .idc-sigbox span{font-size:3cqw}
+  .idc-sigbox b{font-size:7cqw}
+  .idc-bar{height:9%;width:60%;background:repeating-linear-gradient(90deg,var(--ink) 0 .9cqw,transparent .9cqw 1.6cqw,var(--ink) 1.6cqw 3.2cqw,transparent 3.2cqw 4cqw)}
+  .idc-fine{max-width:none;font-size:3.6cqw}
+  .idc-stamp{width:36cqw;height:36cqw;bottom:4%}
+}
+@media (max-width:560px){
+  .brand{max-width:calc(100% - 100px)}
+  .ransom{font-size:clamp(24px,8vw,34px)}
+  .role{font-size:12px;letter-spacing:.1em}
+  .mi{font-size:clamp(36px,11vw,48px)}
+  .bubble{display:none;position:absolute;right:0;top:calc(100% + 18px);margin:0;max-width:min(280px,calc(100vw - 32px))}
+  .navi.talk .bubble{display:block}
+  .navi{flex-direction:column;align-items:flex-end}
+  .shard.s3{display:none}
+  .log li{grid-template-columns:minmax(0,1fr);gap:2px}
+  .p-thumb{height:130px}
+  .p-kicker{max-width:calc(100% - 110px);line-height:1.4}
+  .pg{padding:26px 18px 54px 50px;min-height:0}
+  .pg-doodle{display:none}
+  .ct{grid-template-columns:62px minmax(0,1fr);gap:4px 12px}
+  .ct-stamp{width:58px;font-size:17px}
+  .cv{padding:24px 18px 22px 50px}
+  .cv-star{width:86px;height:86px;right:14px;bottom:16px}
+  .pj-node{--s:46px}
+  .pj-node.on{--s:66px}
+  .pj-arr{width:44px;height:44px;margin:-22px 0 0 -22px}
+  .pj-card{padding:20px 18px 20px}
+  .ph-dig{width:70px;height:88px;font-size:60px}
+  .ph-tk{padding:18px 18px 20px;gap:4px 14px}
+  .ph-dir ul{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-height:640px) and (min-width:821px){
+  .mi{font-size:clamp(34px,8.4vh,60px)}
+  .brand{top:84px}
+}
+@media (prefers-reduced-motion:reduce){
+  .rays,.pill.live,.idc-holo{animation:none}
+  .mi,.char img.on,.p-art img{animation:none}
+  .mi,.mi::before{transition:none}
+  .book,.bk-cover,.bk-leaf,.idc,.pj-node,#pj-ticks{transition:none}
+}
+</style>
+
+<div id="app" lang="tr" data-sec="profil">
+  <div class="stage" id="stage">
+    <div class="bg" aria-hidden="true">
+      <div class="rays"></div>
+      <div class="sun-dots"></div>
+      <div class="sun"></div>
+      <div class="shard s3"></div>
+      <div class="shard s1"></div>
+      <div class="shard s2"></div>
+      <div class="grain"></div>
+    </div>
+
+    <div class="hud" aria-live="off">
+      <div class="date-dm" id="date-dm">29/10</div>
+      <div class="date-side"><span class="date-dw" id="date-dw">PER</span><span class="date-tod" id="date-tod">GECE</span></div>
+    </div>
+
+    <div class="brand">
+      <h1 class="ransom" id="ransom">Yusuf Barlak</h1>
+      <p class="role" id="role"><span>Mekatronik mühendisliği öğrencisi · Oyun geliştirici</span></p>
+    </div>
+
+    <nav class="menu" id="menu" aria-label="Ana menü"></nav>
+
+    <figure class="char" id="char" aria-hidden="true">
+      <img alt="" id="art-a">
+      <img alt="" id="art-b">
+    </figure>
+
+    <button class="navi" id="navi" type="button">
+      <span class="navi-pic"><img src="img/cat_face.png" alt="Kedinin yüzü"></span>
+      <span class="navi-name" id="cat-name">???</span>
+      <span class="bubble" id="bubble" aria-live="polite"></span>
+    </button>
+
+    <footer class="helpbar">
+      <div class="hb-desc"><span class="hb-tag" id="hb-tag">MENÜ</span><span id="hint"></span></div>
+      <div class="hb-keys" id="hb-keys"></div>
+      <div class="hb-opts">
+        <div class="seg" role="group" aria-label="Dil / Language">
+          <button type="button" id="lang-tr" aria-pressed="true">TR</button>
+          <button type="button" id="lang-en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <section class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden></section>
+  <div class="wipe" id="wipe" aria-hidden="true"><i></i><i></i><i></i></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   PORTFÖY VERİSİ — siteyi güncellemek için yalnızca bu bloğu düzenle.
+   Her metin { tr: "...", en: "..." } şeklinde iki dillidir.
+   - Yeni okul/bölüm   → education.degrees dizisine ekle
+   - Yeni sertifika    → education.certs dizisine ekle (date: "YYYY-AA")
+   - Yeni proje        → projects dizisine ekle (icon: sword | run | book | star)
+   - Yeni yetenek      → skills içindeki uygun gruba ekle
+   - Yeni iletişim     → links dizisine ekle, boş bir telefon hattı (dial: 4–9) ver
+   - Her güncellemede  → updated tarihini değiştir, log'a bir satır ekle
+   ════════════════════════════════════════════════════════════════ */
+const PORTFOLIO = {
+  name: "Yusuf Barlak",
+  tag: "B:R",
+  updated: "2026-10-30",
+  role: { tr: "Mekatronik mühendisliği öğrencisi · Oyun geliştirici", en: "Mechatronics engineering student · Game developer" },
+  bio: [
+    { tr: "Sivas Cumhuriyet Üniversitesi'nde Mekatronik, Robotik ve Otomasyon Mühendisliği okuyorum. Okulun yanında Unity ve C# ile 2D oyunlar geliştiriyor, C ailesi diller üzerine Türkçe kaynaklar hazırlıyorum.",
+      en: "I study Mechatronics, Robotics and Automation Engineering at Sivas Cumhuriyet University. Alongside school I build 2D games with Unity and C#, and write Turkish-language guides to the C family of languages." },
+    { tr: "Eğitimim devam ediyor. Bu sayfa da benimle birlikte büyüyor: yeni dersler, sertifikalar ve projeler geldikçe buraya ekleniyor.",
+      en: "My studies are still under way, and this page grows with them: new courses, certificates and projects land here as they happen." }
+  ],
+  focus: { tr: "Oyun geliştirme · C ailesi diller · Robotik", en: "Game development · C-family languages · Robotics" },
+
+  cat: { name: "???", role: { tr: "Rehber, ekip arkadaşı", en: "Guide and teammate" } },
+
+  education: {
+    degrees: [
+      { school: "Sivas Cumhuriyet Üniversitesi",
+        program: { tr: "Lisans · Mekatronik, Robotik ve Otomasyon Mühendisliği", en: "B.Sc. · Mechatronics, Robotics and Automation Engineering" },
+        start: "2026-09", end: "2030-09",
+        activities: [ { tr: "Robotik / otomasyon kulübü", en: "Robotics / automation club" }, { tr: "Öğrenci topluluğu", en: "Student society" } ] }
+    ],
+    certs: [
+      { name: { tr: "C programlama dili", en: "C programming language" }, org: "BTK Akademi", date: "2026-10",
+        url: "https://www.btkakademi.gov.tr/portal/c/fdc46ddd-f4d0-4146-b0a5-90dbc08797ce" },
+      { name: { tr: "Unity oyun geliştirme motoru · ileri seviye", en: "Unity game engine · advanced" }, org: "BTK Akademi", date: "2026-06",
+        url: "https://www.btkakademi.gov.tr/portal/certificate/validate?certificateId=qKrheLGeMq" },
+      { name: { tr: "Unity oyun geliştirme motoru", en: "Unity game engine" }, org: "BTK Akademi", date: "2026-05",
+        url: "https://www.btkakademi.gov.tr/portal/certificate/validate?certificateId=PVghMlWpZL" },
+      { name: { tr: "C# programlama dili", en: "C# programming language" }, org: "BTK Akademi", date: "2026-02",
+        url: "https://www.btkakademi.gov.tr/portal/certificate/validate?certificateId=9Xrtz4rKrw" }
+    ]
+  },
+
+  projects: [
+    { name: "Katana Kai", icon: "sword", type: { tr: "Oyun", en: "Game" },
+      desc: { tr: "Unity ile geliştirdiğim 2D aksiyon oyunu. Kılıç dövüşü üzerine kurulu, geliştirme sürüyor.",
+              en: "A 2D action game I'm building in Unity around sword combat. In development." },
+      tags: ["C#", "Unity", "2D"], url: "https://github.com/ysfbrlk236-commits/katana-kai" },
+    { name: "Endless Platformer", icon: "run", type: { tr: "Oyun", en: "Game" },
+      desc: { tr: "Sonsuz koşu tarzında bir platform-aksiyon oyunu. Katana Kai'nin ilk denemelerinin yapıldığı depo.",
+              en: "An endless-runner style platform action game, the repo where Katana Kai's first experiments started." },
+      tags: ["C#", "Unity", "2D"], url: "https://github.com/ysfbrlk236-commits/-game-p1" },
+    { name: { tr: "C Dilleri Yazılım Kitabı", en: "C Languages Book" }, icon: "book", type: { tr: "Kitap / Eğitim", en: "Book / Guide" },
+      desc: { tr: "C, C++ ve C# dillerini sıfırdan ileri seviyeye anlatan Türkçe eğitim ve başvuru kaynağı. Temel programlama, nesne yönelimli programlama ve modern dil özellikleri; Java'ya giriş ve C dillerinin tarihi de içinde.",
+              en: "A Turkish-language course and reference taking C, C++ and C# from zero to advanced: fundamentals, object-oriented programming and modern language features, plus an intro to Java and a history of the C languages." },
+      tags: ["C", "C++", "C#", "Java", "PDF"], url: "https://github.com/ysfbrlk236-commits/C-dilleri-yaz-l-m-kitab-" }
+  ],
+
+  skills: [
+    { group: { tr: "Diller", en: "Languages" }, items: [
+      { glyph: "C#", name: "C#", ev: { tr: "BTK sertifikası · Katana Kai, Endless Platformer", en: "BTK certificate · Katana Kai, Endless Platformer" } },
+      { glyph: "C", name: { tr: "C", en: "C" }, ev: { tr: "BTK sertifikası · kitap projesi", en: "BTK certificate · book project" } },
+      { glyph: "C++", name: "C++", ev: { tr: "Kitap projesi", en: "Book project" } },
+      { glyph: "JAVA", name: "Java", ev: { tr: "Kitap projesi · giriş bölümü", en: "Book project · intro chapter" } }
+    ]},
+    { group: { tr: "Motor ve araçlar", en: "Engines and tools" }, items: [
+      { glyph: "UNITY", name: "Unity", ev: { tr: "İki BTK sertifikası (biri ileri seviye) · iki oyun", en: "Two BTK certificates (one advanced) · two games" } },
+      { glyph: "GIT", name: "Git & GitHub", ev: { tr: "Üç açık depo", en: "Three public repositories" } },
+      { glyph: "OFFICE", name: "Microsoft Office", ev: { tr: "LinkedIn yetenek listesi", en: "LinkedIn skills" } }
+    ]},
+    { group: { tr: "İlgi alanları", en: "Interests" }, items: [
+      { glyph: "ROBOT", name: { tr: "Robotik ve otomasyon", en: "Robotics and automation" }, ev: { tr: "Bölümüm ve kulübüm", en: "My degree and club" } },
+      { glyph: "AI", name: { tr: "Yapay zekâ · yerel modeller", en: "AI · local models" }, ev: { tr: "Sertifika eğitimlerinde işlenen konular", en: "Covered in certificate courses" } },
+      { glyph: "WEB", name: { tr: "Web geliştirme", en: "Web development" }, ev: { tr: "Bu site dahil", en: "This site included" } }
+    ]}
+  ],
+
+  /* dial = çevirmeli telefondaki hat numarası (1–9) */
+  links: [
+    { dial: 1, label: "GitHub", handle: "ysfbrlk236-commits", url: "https://github.com/ysfbrlk236-commits" },
+    { dial: 2, label: "LinkedIn", handle: "yusuf-barlak-0079773b0", url: "https://www.linkedin.com/in/yusuf-barlak-0079773b0/" },
+    { dial: 3, label: "Instagram", handle: "@silence_9282", url: "https://www.instagram.com/silence_9282/" }
+  ],
+
+  log: [
+    { date: "2026-10-29", text: { tr: "Portföy yayına girdi: profil, eğitim, projeler, yetenekler.", en: "Portfolio went live: profile, education, projects, skills." } },
+    { date: "2026-10-29", text: { tr: "Yeni renkler: her bölümün kendi canlı rengi var.", en: "New colors: every section has its own vivid color." } },
+    { date: "2026-10-30", text: { tr: "Yeni sahneler: kimlik kartı, ders defteri, proje çarkı ve çevirmeli telefon. Instagram eklendi.", en: "New scenes: ID card, notebook, project wheel and rotary phone. Instagram added." } }
+  ]
+};
+
+/* Görseller: her menü öğesinin kendi pozu var. h = sahne yüksekliğine oranı */
+const ART = {
+  hero:    { src: "img/hero.png",    h: .9  },
+  profile: { src: "img/profile.png", h: .66 },
+  study:   { src: "img/study.png",   h: .66 },
+  quest:   { src: "img/quest.png",   h: .9  },
+  social:  { src: "img/social.png",  h: .6  },
+  contact: { src: "img/contact.png", h: .82 }
+};
+const PJ_HEAD = { src: "img/proj_head.png", w: 1057, h: 1038, cx: .54, cy: .326, r: .344 };
+
+const SECTIONS = [
+  { id: "profil",     art: "profile", label: { tr: "PROFİL", en: "PROFILE" },
+    hint: { tr: "Kimim, ne üzerinde çalışıyorum.", en: "Who I am and what I'm working on." } },
+  { id: "egitim",     art: "study",   label: { tr: "EĞİTİM", en: "EDUCATION" },
+    hint: { tr: "Üniversite, kulüpler ve sertifikalar.", en: "University, clubs and certificates." } },
+  { id: "projeler",   art: "quest",   label: { tr: "PROJELER", en: "PROJECTS" },
+    hint: { tr: "Oyunlarım ve kitap projem.", en: "My games and my book project." } },
+  { id: "yetenekler", art: "social",  label: { tr: "YETENEKLER", en: "SKILLS" },
+    hint: { tr: "Bildiğim diller, araçlar ve kanıtları.", en: "Languages, tools and where they show up." } },
+  { id: "iletisim",   art: "contact", label: { tr: "İLETİŞİM", en: "CONTACT" },
+    hint: { tr: "Telefonu çevir: GitHub, LinkedIn, Instagram.", en: "Dial in: GitHub, LinkedIn, Instagram." } }
+];
+
+const UI = {
+  tr: { menu: "MENÜ", select: "Seç", open: "Aç", back: "Geri", backBtn: "GERİ", updated: "Son güncelleme",
+        days: ["PAZ","PZT","SAL","ÇAR","PER","CUM","CMT"], tod: ["GECE","SABAH","ÖĞLEN","AKŞAM"],
+        name: "Ad", tag: "Etiket", school: "Okul", dept: "Bölüm", focus: "Odak", status: "Durum", cat: "Kedi",
+        about: "Hakkımda", logT: "Güncelleme günlüğü", polaroid: "Ekip arkadaşım", catAlt: "Karton kutuda oturan tekir kedi",
+        yearOf: (y, n) => `${y}. sınıf · ${n} yıllık program`, ongoing: "Devam ediyor", done: "Tamamlandı", expected: "beklenen",
+        studyStatus: (y) => `${y}. sınıf, eğitim devam ediyor`, degree: "Üniversite", activities: "Topluluklar", certs: "Sertifikalar",
+        verify: "Belgeyi doğrula", repo: "GitHub'da aç", menuLabel: "Ana menü",
+        idTitle: "Öğrenci kimlik kartı", idNo: "No. 001", takeCard: "Kimlik kartını al", cta: "KARTI AL",
+        flip: "Kartı çevir", flipHint: "Kartın arkası için karta tıkla.", signature: "İMZA",
+        cardFine: "Bu kart, sahibinin portföyüne giriş içindir. Bulan kişinin kartı kediye teslim etmesi rica olunur.", stamp: "MİYAV ONAYLI",
+        bookKind: "DERS DEFTERİ", bookTitle: "EĞİTİM", lblName: "ADI SOYADI", lblClass: "SINIFI", lblSubj: "DERSİ", subj: "Mekatronik",
+        classVal: (y) => `${y}. sınıf`, pageNext: "Sayfayı çevir", pagePrev: "Önceki sayfa", pageNextS: "Çevir", pagePrevS: "Geri", note1: "← daha yolun başı!",
+        pjPrev: "Önceki proje", pjNext: "Sonraki proje", pjHelp: "Okları, fare tekerleğini ya da parmağınla kaydırmayı kullan.", pjWheel: "Proje çarkı",
+        line: "Hat", dialing: "Çevriliyor…", connected: "Bağlandı", connect: "Bağlan", idleTitle: "Bir numara çevir",
+        idleText: "Telefon seni bekliyor.", phHelp: "Bir delikten tutup durdurucuya kadar saat yönünde çevir ya da rehberden bir numaraya dokun.",
+        dirTitle: "TELEFON REHBERİ", operator: "Operatör", opLabel: "Operatör ???", opText: "Miyav. Rehber benim: 1 GitHub, 2 LinkedIn, 3 Instagram.",
+        empty: (d) => `Hat ${d} henüz bağlı değil. Yeni bir adres gelince bu hat çalacak.`, emptyLabel: "Boş hat", ring: "ZIRR!", phone: "Çevirmeli telefon",
+        holeLabel: (d, l) => `${d} numarasını çevir${l ? ": " + l : ""}`,
+        catLabel: "Kedi rehber: yeni ipucu", catTag: "REHBER",
+        tips: [
+          "Ok tuşlarıyla gez, Enter ile aç. Ben buradan izliyorum.",
+          "Bu sayfa sahibimle birlikte büyüyor. Yeni ders, yeni proje geldikçe güncelleniyor.",
+          "Kutulara sığarım. Sahibim de kod satırlarına.",
+          "Projeler bölümünde iki Unity oyunu ve bir kitap var.",
+          "Fareyle de gezebilirsin. Merak etme, bu fareyi yemem.",
+          "İletişimde telefonu çevir. 0'ı çevirirsen ben açarım.",
+          "Sertifikaların hepsi doğrulanabilir. Eğitim bölümüne bak.",
+          "Acele etme, miyavaşça gez.",
+          "Mırlamıyorum, arka planda derleme yapıyorum.",
+          "Buradaki her projeyi tek tek patiledim. Hepsi kedi onaylı.",
+          "Herkes buna Persona diyor. Ben Mırsona diyorum.",
+          "Yedi canım var, sahibimin de yedi açık sekmesi. Kimin önde olduğu belli değil.",
+          "Kutuya girerim, kutudan çıkarım. Sahibim de kutunun dışında düşünür.",
+          "En sevdiğim tuş Esc. Kaçmak benim uzmanlık alanım.",
+          "Bana patron deme, pati-ron de.",
+          "Kod çökerse sahibim dört ayağının üstüne düşer. Genelde.",
+          "Tırmalamak benim işim. Sahibim de kodu satır satır tırmalıyor."
+        ],
+        egg: "Arşivden bir fotoğraf buldum: küçüklüğüm. Kimseye söyleme." },
+  en: { menu: "MENU", select: "Select", open: "Open", back: "Back", backBtn: "BACK", updated: "Last updated",
+        days: ["SUN","MON","TUE","WED","THU","FRI","SAT"], tod: ["NIGHT","MORNING","DAYTIME","EVENING"],
+        name: "Name", tag: "Tag", school: "School", dept: "Major", focus: "Focus", status: "Status", cat: "Cat",
+        about: "About me", logT: "Update log", polaroid: "My teammate", catAlt: "Tabby cat sitting in a cardboard box",
+        yearOf: (y, n) => `Year ${y} of a ${n}-year program`, ongoing: "In progress", done: "Completed", expected: "expected",
+        studyStatus: (y) => `Year ${y}, studies in progress`, degree: "University", activities: "Societies", certs: "Certificates",
+        verify: "Verify", repo: "Open on GitHub", menuLabel: "Main menu",
+        idTitle: "Student ID card", idNo: "No. 001", takeCard: "Take the ID card", cta: "TAKE THE CARD",
+        flip: "Flip the card", flipHint: "Click the card to see its back.", signature: "SIGNATURE",
+        cardFine: "This card grants entry to its owner's portfolio. If found, please return it to the cat.", stamp: "MEOW APPROVED",
+        bookKind: "NOTEBOOK", bookTitle: "EDUCATION", lblName: "NAME", lblClass: "YEAR", lblSubj: "SUBJECT", subj: "Mechatronics",
+        classVal: (y) => `Year ${y}`, pageNext: "Turn the page", pagePrev: "Previous page", pageNextS: "Turn", pagePrevS: "Back", note1: "← just getting started!",
+        pjPrev: "Previous project", pjNext: "Next project", pjHelp: "Use the arrows, the mouse wheel or swipe.", pjWheel: "Project wheel",
+        line: "Line", dialing: "Dialing…", connected: "Connected", connect: "Connect", idleTitle: "Dial a number",
+        idleText: "The phone is waiting for you.", phHelp: "Grab a finger hole and turn it clockwise to the stop, or tap a number in the phone book.",
+        dirTitle: "PHONE BOOK", operator: "Operator", opLabel: "Operator ???", opText: "Meow. I'm the phone book: 1 GitHub, 2 LinkedIn, 3 Instagram.",
+        empty: (d) => `Line ${d} isn't connected yet. It will ring when a new address arrives.`, emptyLabel: "Empty line", ring: "RING!", phone: "Rotary phone",
+        holeLabel: (d, l) => `Dial ${d}${l ? ": " + l : ""}`,
+        catLabel: "Cat guide: next tip", catTag: "GUIDE",
+        tips: [
+          "Use the arrow keys, press Enter to open. I'll be watching from here.",
+          "This page grows with my human. New courses and projects get added as they happen.",
+          "I fit in boxes. My human fits in lines of code.",
+          "Projects has two Unity games and a book.",
+          "You can use the mouse too. Don't worry, I won't eat this one.",
+          "Dial the phone in Contact. Dial 0 and I'll pick up.",
+          "Every certificate can be verified. Check Education.",
+          "No rush. Paws and look around.",
+          "I'm not purring, I'm compiling in the background.",
+          "Every project here is paw-reviewed and cat-approved.",
+          "Everyone calls it Persona. I call it Purr-sona.",
+          "Nine lives, nine open tabs. My human is catching up.",
+          "I fit in boxes. My human thinks outside them.",
+          "Favorite key: Esc. Escaping is my specialty.",
+          "Don't call me the boss. Call me the cat-alyst.",
+          "Feline fine? Good. Now press Enter.",
+          "If the code crashes, my human lands on his feet. Mostly."
+        ],
+        egg: "Found a photo in the archive: baby me. Don't tell anyone." }
+};
+
+/* ═════════════════════════ engine ═════════════════════════ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const S = { lang: "tr", sel: 0, open: null, tip: 0, catClicks: 0, artLayer: 0, artKey: null, busy: false, pj: 0, sceneKey: null, cleanup: [] };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const T = v => (v && typeof v === "object" && !Array.isArray(v)) ? (v[S.lang] ?? v.tr) : v;
+const ui = () => UI[S.lang];
+const up = s => s.toLocaleUpperCase(S.lang === "tr" ? "tr-TR" : "en-US");
+const store = { get(k) { try { return localStorage.getItem(k) } catch (e) { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} } };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const isNarrow = () => innerWidth < 760;
+
+const ym = s => { const [y, m] = s.split("-").map(Number); return new Date(y, m - 1, 1) };
+const MONTHS = { tr: ["OCA","ŞUB","MAR","NİS","MAY","HAZ","TEM","AĞU","EYL","EKİ","KAS","ARA"], en: ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"] };
+const mon = d => MONTHS[S.lang][d.getMonth()];
+const fmtDay = s => { const d = new Date(s + "T12:00:00"); return S.lang === "tr" ? d.toLocaleDateString("tr-TR") : d.toLocaleDateString("en-GB") };
+function studyYear(dg) {
+  const st = ym(dg.start), en = ym(dg.end), now = new Date();
+  const total = (en - st), el = Math.min(Math.max(now - st, 0), total);
+  const years = Math.round(total / 31557600000);
+  const year = Math.min(years, Math.floor(el / 31557600000) + 1);
+  return { pct: total ? el / total : 0, year, years, done: now >= en };
+}
+
+/* ransom-note name: deterministic letter styles */
+const LSTYLE = [
+  ["var(--f-display)", "var(--paper)", "var(--ink)", "-6deg", "0px", "1.08em"],
+  ["var(--f-heavy)", "var(--ink)", "var(--paper)", "4deg", "-3px", ".92em"],
+  ["var(--f-serif)", "var(--accent)", "var(--on-accent)", "-2deg", "2px", "1em"],
+  ["var(--f-display)", "var(--ink)", "var(--paper)", "7deg", "-1px", "1.14em"],
+  ["var(--f-heavy)", "var(--paper)", "var(--ink)", "-4deg", "3px", ".88em"],
+  ["var(--f-serif)", "var(--paper)", "var(--ink)", "3deg", "-2px", "1.02em"]
+];
+function ransom(el, text, offset = 0) {
+  el.setAttribute("aria-label", text);
+  let i = offset;
+  el.innerHTML = text.split(" ").map(w => `<span class="w" aria-hidden="true">${[...up(w)].map(ch => {
+    const [f, b, c, r, y, s] = LSTYLE[(i++ * 5 + 1) % LSTYLE.length];
+    return `<span class="l" style="--f:${f};--b:${b};--c:${c};--r:${r};--y:${y};--s:${s}">${esc(ch)}</span>`;
+  }).join("")}</span>`).join("");
+}
+
+/* date HUD */
+function tickDate() {
+  const d = new Date(), h = d.getHours(), dd = String(d.getDate()).padStart(2, "0"), mm = String(d.getMonth() + 1).padStart(2, "0");
+  $("#date-dm").textContent = S.lang === "tr" ? `${dd}/${mm}` : `${mm}/${dd}`;
+  $("#date-dw").textContent = ui().days[d.getDay()];
+  $("#date-tod").textContent = ui().tod[h < 5 ? 0 : h < 11 ? 1 : h < 17 ? 2 : h < 21 ? 3 : 0];
+}
+
+/* character art */
+const preload = [...Object.values(ART).map(a => a.src), PJ_HEAD.src, "img/cat_box.png"].map(src => { const i = new Image(); i.src = src; return i });
+function setArt(key) {
+  if (S.artKey === key) return;
+  S.artKey = key;
+  const a = ART[key], fig = $("#char");
+  const imgs = [$("#art-a"), $("#art-b")];
+  const next = imgs[S.artLayer ^= 1], prev = imgs[S.artLayer ^ 1];
+  fig.style.setProperty("--h", a.h);
+  next.src = a.src;
+  prev.classList.remove("on");
+  next.classList.remove("on"); void next.offsetWidth; next.classList.add("on");
+  if (!reduce) { fig.classList.add("flash"); setTimeout(() => fig.classList.remove("flash"), 70); }
+}
+
+/* menu */
+function renderMenu() {
+  const m = $("#menu");
+  m.setAttribute("aria-label", ui().menuLabel);
+  m.innerHTML = SECTIONS.map((s, i) => `<button type="button" class="mi${i === S.sel ? " on" : ""}" style="--i:${i}" data-i="${i}" data-id="${s.id}"><span class="t">${esc(T(s.label))}</span></button>`).join("");
+  m.querySelectorAll(".mi").forEach(b => {
+    b.addEventListener("mouseenter", () => select(+b.dataset.i));
+    b.addEventListener("focus", () => select(+b.dataset.i));
+    b.addEventListener("click", () => go(b.dataset.id));
+  });
+}
+function select(i, keepArt) {
+  S.sel = (i + SECTIONS.length) % SECTIONS.length;
+  document.querySelectorAll(".mi").forEach((b, j) => b.classList.toggle("on", j === S.sel));
+  $("#hint").textContent = T(SECTIONS[S.sel].hint);
+  $("#app").dataset.sec = SECTIONS[S.sel].id;
+  if (!keepArt) setArt(SECTIONS[S.sel].art);
+}
+
+/* cat */
+function sayTip(next) {
+  if (next) S.tip = (S.tip + 1) % ui().tips.length;
+  $("#bubble").innerHTML = `<b>${esc(T(PORTFOLIO.cat.name))} · ${esc(ui().catTag)}</b>${esc(ui().tips[S.tip])}`;
+}
+$("#navi").addEventListener("click", () => {
+  const n = $("#navi");
+  n.classList.remove("wiggle"); void n.offsetWidth; n.classList.add("wiggle");
+  S.catClicks++;
+  if (S.catClicks % 5 === 0) {
+    $("#bubble").innerHTML = `<b>${esc(T(PORTFOLIO.cat.name))} · ${esc(ui().catTag)}</b>${esc(ui().egg)}<img src="img/kitten.png" alt="">`;
+  } else sayTip(true);
+  n.classList.add("talk");
+  clearTimeout(n._t); n._t = setTimeout(() => n.classList.remove("talk"), 6000);
+});
+
+/* ═════════════════════════ drawings ═════════════════════════ */
+const SK = "var(--skin)", SK2 = "var(--skin-2)", INK = "var(--ink)";
+/* arm design space: 1500×420, the card's right-edge midpoint sits at (300,212) */
+function armSVG(front) {
+  const o = `stroke="${INK}" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"`;
+  if (front) return `
+    <g class="pose-a">
+      <path d="M408 158 L252 170 C222 172 218 214 250 216 L412 204 Z" fill="${SK}" ${o}/>
+      <path d="M252 178 C240 180 238 204 252 207 L276 206 L274 177 Z" fill="#fff2e8" stroke="${INK}" stroke-width="4"/>
+      <path d="M334 166 C330 178 330 194 336 205" fill="none" stroke="${SK2}" stroke-width="5" stroke-linecap="round"/>
+    </g>`;
+  return `
+    <path d="M640 118 C900 92 1200 64 1560 50 L1560 440 C1200 404 900 362 640 330 Z" fill="${INK}"/>
+    <path d="M700 168 C950 146 1200 124 1560 110 L1560 146 C1200 158 950 180 700 200 Z" fill="var(--pop)"/>
+    <path d="M760 296 C900 308 1060 330 1200 356 M820 236 C980 236 1140 236 1300 246" fill="none" stroke="#2c2836" stroke-width="10" stroke-linecap="round"/>
+    <path d="M588 126 L670 118 L678 334 L594 328 Z" fill="var(--paper)" ${o}/>
+    <path d="M612 128 L618 330 M634 126 L640 332 M656 124 L662 334" stroke="${INK}" stroke-width="4" opacity=".3"/>
+    <g class="pose-a">
+      <path d="M410 226 L262 236 C232 238 228 280 260 282 L414 274 Z" fill="${SK}" ${o}/>
+      <path d="M418 268 C372 266 346 284 350 308 C354 332 388 338 420 326 Z" fill="${SK}" ${o}/>
+      <path d="M424 308 C388 308 372 324 376 342 C380 360 408 364 430 354 Z" fill="${SK}" ${o}/>
+      <path d="M404 154 C470 138 540 136 600 142 L606 326 C540 338 470 344 418 338 C394 300 390 190 404 154 Z" fill="${SK}" ${o}/>
+      <path d="M560 146 C574 200 578 270 570 330 L604 326 L600 142 Z" fill="${SK2}"/>
+      <path d="M404 154 C470 138 540 136 600 142 L606 326 C540 338 470 344 418 338 C394 300 390 190 404 154 Z" fill="none" ${o}/>
+      <path d="M418 186 C430 182 444 184 452 190 M424 240 C436 236 450 238 458 244 M430 292 C442 288 456 290 462 296" fill="none" stroke="${SK2}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M584 300 C524 338 472 358 420 362 C394 364 390 336 414 328 C462 312 502 296 548 280 Z" fill="${SK}" ${o}/>
+    </g>
+    <g class="pose-b">
+      <path d="M600 166 C540 166 470 180 420 198 L262 212 C230 214 226 256 258 258 L430 262 C500 280 560 304 606 312 Z" fill="${SK}" ${o}/>
+      <path d="M430 262 C500 280 560 304 606 312 L604 270 C560 262 500 252 440 248 Z" fill="${SK2}"/>
+      <path d="M600 166 C540 166 470 180 420 198 L262 212 C230 214 226 256 258 258 L430 262 C500 280 560 304 606 312 Z" fill="none" ${o}/>
+      <path d="M418 222 L290 230 M424 242 L300 246" fill="none" stroke="${SK2}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M560 214 C524 230 486 238 456 240" fill="none" stroke="${SK2}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M548 190 C528 140 494 106 460 102 C436 100 432 126 448 138 C474 158 490 180 500 204 Z" fill="${SK}" ${o}/>
+    </g>`;
+}
+const PAW = (label) => `<svg class="idc-stamp" viewBox="0 0 200 200" aria-hidden="true">
+  <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-width="7"/>
+  <circle cx="100" cy="100" r="76" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="5 7"/>
+  <path id="stampArc" d="M28 106 A72 72 0 0 1 172 106" fill="none"/>
+  <text font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-size="19" letter-spacing="2" fill="currentColor"><textPath href="#stampArc" startOffset="50%" text-anchor="middle">${esc(label)}</textPath></text>
+  <g fill="currentColor"><ellipse cx="100" cy="128" rx="26" ry="21"/><ellipse cx="70" cy="100" rx="10" ry="13"/><ellipse cx="90" cy="88" rx="10" ry="13"/><ellipse cx="112" cy="88" rx="10" ry="13"/><ellipse cx="131" cy="100" rx="10" ry="13"/></g>
+</svg>`;
+const ICONS = {
+  sword: `<path d="M38 8 L42 6 L40 10 L18 32 L15 29 Z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M12 26 L22 36 M9 39 L15 33 M6 42 L10 38" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>`,
+  run: `<path d="M4 40 H16 V30 H28 V20 H44" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><path d="M8 22 C12 8 26 4 34 10" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 6"/><path d="M30 4 L37 11 L28 13 Z" fill="currentColor"/>`,
+  book: `<path d="M24 12 C18 7 10 6 4 8 V38 C10 36 18 37 24 42 C30 37 38 36 44 38 V8 C38 6 30 7 24 12 Z M24 12 V42" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>`,
+  star: `<path d="M24 4 L30 18 L45 19 L33 29 L37 44 L24 36 L11 44 L15 29 L3 19 L18 18 Z" fill="currentColor"/>`
+};
+const STAR = `<svg class="cv-star" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 4 L72 34 L104 22 L88 52 L116 70 L82 76 L84 110 L60 88 L36 110 L38 76 L4 70 L32 52 L16 22 L48 34 Z" fill="currentColor" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round"/></svg>`;
+
+/* ═════════════════════════ panel markup ═════════════════════════ */
+function idCardHTML() {
+  const P = PORTFOLIO, u = ui(), dg = P.education.degrees[0], sy = studyYear(dg);
+  return `
+    <div class="idc-face idc-front">
+      <div class="idc-top"><span>${esc(P.tag)} · ${esc(u.idTitle)}</span><b>${esc(u.idNo)}</b></div>
+      <div class="idc-body">
+        <div class="idc-photo"><img src="img/profile.png" alt="${esc(P.name)}"></div>
+        <dl class="idc-fields">
+          <dt>${u.name}</dt><dd class="idc-name">${esc(P.name)}</dd>
+          <dt>${u.school}</dt><dd>${esc(dg.school)}</dd>
+          <dt>${u.dept}</dt><dd>${esc(T(dg.program).split("·").pop().trim())}</dd>
+          <dt>${u.focus}</dt><dd>${esc(T(P.focus))}</dd>
+          <dt>${u.status}</dt><dd><span class="pill live">${esc(sy.done ? u.done : u.ongoing)}</span> ${esc(u.studyStatus(sy.year))}</dd>
+          <dt>${u.cat}</dt><dd>${esc(T(P.cat.name))} · ${esc(T(P.cat.role))}</dd>
+        </dl>
+      </div>
+      <div class="idc-foot"><span class="idc-sig">${esc(P.name)}</span><span class="idc-holo" aria-hidden="true"></span></div>
+    </div>
+    <div class="idc-face idc-back" aria-hidden="true">
+      <div class="idc-stripe"></div>
+      <div class="idc-sigbox"><span>${u.signature}</span><b>${esc(P.name)}</b></div>
+      <div class="idc-bar"></div>
+      <p class="idc-fine">${esc(u.cardFine)}</p>
+      ${PAW(u.stamp)}
+    </div>`;
+}
+
+function eduPages() {
+  const P = PORTFOLIO, u = ui();
+  const edu = P.education.degrees.map((dg, k) => {
+    const sy = studyYear(dg), st = ym(dg.start), en = ym(dg.end), pct = Math.round(sy.pct * 100);
+    return `<span class="pg-tab">${u.degree}</span>
+      <div><span class="pill ${sy.done ? "" : "live"}">${esc(sy.done ? u.done : u.ongoing)}</span></div>
+      <h3 class="pg-h" style="margin-top:12px">${esc(dg.school)}</h3>
+      <p class="pg-sub">${esc(T(dg.program))}</p>
+      <div class="pg-dates"><span>${mon(st)} ${st.getFullYear()}</span><i aria-hidden="true">→</i><span>${mon(en)} ${en.getFullYear()}</span>${sy.done ? "" : `<small>(${u.expected})</small>`}</div>
+      <div class="prog">
+        <div class="prog-bar" role="img" aria-label="${pct}%"><i style="--p:${(sy.pct * 100).toFixed(1)}%"></i>${[1, 2, 3].map(q => `<b style="left:${q * 25}%"></b>`).join("")}</div>
+        <div class="prog-meta"><span>${esc(u.yearOf(sy.year, sy.years))}</span><span>%${pct}</span></div>
+      </div>
+      ${sy.year === 1 && !sy.done ? `<p class="pg-note">${esc(u.note1)}</p>` : ""}
+      ${dg.activities?.length ? `<div class="chips" aria-label="${u.activities}">${dg.activities.map(x => `<span class="chip">${esc(T(x))}</span>`).join("")}</div>` : ""}`;
+  }).join("");
+  const certs = `<span class="pg-tab">${u.certs}</span>
+    <ul class="cts">${[...P.education.certs].sort((a, b) => b.date.localeCompare(a.date)).map(c => {
+      const d = ym(c.date);
+      return `<li class="ct"><span class="ct-stamp">${mon(d)}<small>${d.getFullYear()}</small></span>
+        <span class="ct-name">${esc(T(c.name))}</span>
+        <span class="ct-row"><span class="ct-org">${esc(c.org)}</span>${c.url ? `<a class="lnk" href="${esc(c.url)}" target="_blank" rel="noopener">${u.verify} ↗</a>` : ""}</span></li>`;
+    }).join("")}</ul>`;
+  return { edu, certs };
+}
+function coverHTML() {
+  const P = PORTFOLIO, u = ui(), dg = P.education.degrees[0], sy = studyYear(dg);
+  return `<div class="cv">
+      <div class="cv-top"><span>${esc(P.tag)}</span><span>${u.bookKind}</span></div>
+      <div class="cv-title">${esc(u.bookTitle)}</div>
+      <div class="cv-label">
+        <div><small>${u.lblName}</small><b>${esc(P.name)}</b></div>
+        <div><small>${u.lblClass}</small><b>${esc(u.classVal(sy.year))}</b></div>
+        <div><small>${u.lblSubj}</small><b>${esc(u.subj)}</b></div>
+      </div>
+      ${STAR}
+    </div>`;
+}
+
+function panelHTML(id) {
+  const P = PORTFOLIO, u = ui(), s = SECTIONS.find(x => x.id === id), a = ART[s.art];
+  let body = "", wide = false, art = false;
+  if (id === "profil") {
+    body = `
+      <div class="idc-slot"><div class="idc" id="idc" tabindex="0" role="button" aria-label="${esc(u.flip)}">${idCardHTML()}</div><p class="idc-hint">${esc(u.flipHint)}</p></div>
+      <div class="split">
+        <div><h3 class="h3">${u.about}</h3><div class="cardw"><div class="card">${P.bio.map(b => `<p>${esc(T(b))}</p>`).join("")}</div></div></div>
+        <figure class="polaroid"><img src="img/cat_box.png" alt="${esc(u.catAlt)}"><figcaption>${esc(u.polaroid)} · ${esc(T(P.cat.name))}</figcaption></figure>
+      </div>
+      <div><h3 class="h3">${u.logT}</h3>
+        <ol class="log">${[...P.log].reverse().map(l => `<li><time datetime="${l.date}">${fmtDay(l.date)}</time><span>${esc(T(l.text))}</span></li>`).join("")}</ol></div>`;
+  }
+  if (id === "egitim") {
+    wide = true;
+    const pg = eduPages();
+    body = isNarrow()
+      ? `<div class="bk-wrap"><div class="book narrow" id="book">
+          <div class="bk-r"><div class="pg" data-n="— 2 —">${pg.certs}</div></div>
+          <div class="bk-leaf" id="bk-leaf"><div class="bk-face"><div class="pg" data-n="— 1 —">${pg.edu}<div class="pg-doodle" aria-hidden="true">lim sin x / x = 1</div></div></div><div class="bk-face bk-l-back"><div class="pg" data-n=""></div></div></div>
+          <div class="bk-cover" id="bk-cover"><div class="bk-face bk-front">${coverHTML()}</div></div>
+        </div>
+        <div class="bk-nav"><button type="button" id="bk-prev" aria-label="${esc(u.pagePrev)}" disabled>← ${u.pagePrevS}</button><span id="bk-pg">1 / 2</span><button type="button" id="bk-next" aria-label="${esc(u.pageNext)}">${u.pageNextS} →</button></div></div>`
+      : `<div class="bk-wrap"><div class="book wide" id="book">
+          <div class="bk-r"><div class="pg pg-r" data-n="— 2 —">${pg.certs}</div></div>
+          <div class="bk-cover" id="bk-cover">
+            <div class="bk-face bk-front">${coverHTML()}</div>
+            <div class="bk-face bk-in"><div class="pg pg-l" data-n="— 1 —">${pg.edu}<div class="pg-doodle" aria-hidden="true">lim  sin x
+x→0   ───── = 1
+          x</div></div></div>
+          </div>
+        </div></div>`;
+  }
+  if (id === "projeler") {
+    wide = true;
+    body = `<div class="pj" id="pj">
+        <div class="pj-stage" id="pj-stage" role="group" aria-label="${esc(u.pjWheel)}">
+          <img class="pj-head" id="pj-head" src="${PJ_HEAD.src}" alt="${esc(P.name)}">
+          <svg class="pj-ring" id="pj-ring" aria-hidden="true"></svg>
+          <div id="pj-nodes">${P.projects.map((p, i) => `<button type="button" class="pj-node" data-i="${i}" style="--k:${i}" aria-label="${esc(T(p.name))}"><span class="dia"></span><svg viewBox="0 0 48 48" aria-hidden="true">${ICONS[p.icon] || ICONS.star}</svg><span class="pj-lbl">${esc(T(p.name))}</span></button>`).join("")}</div>
+          <button type="button" class="pj-arr up" id="pj-up" aria-label="${esc(u.pjPrev)}"><span class="tri"></span></button>
+          <button type="button" class="pj-arr down" id="pj-down" aria-label="${esc(u.pjNext)}"><span class="tri"></span></button>
+        </div>
+        <div class="pj-info"><div class="pj-infow" id="pj-info" aria-live="polite"></div><p class="pj-help">${esc(u.pjHelp)}</p></div>
+      </div>`;
+  }
+  if (id === "yetenekler") {
+    art = true;
+    body = P.skills.map(g => `<div class="sk-group"><h3 class="h3">${esc(T(g.group))}</h3>
+      <div class="tiles">${g.items.map(it => `<div class="tile"><span class="tile-g${it.glyph.length > 4 ? " long" : ""}" aria-hidden="true">${esc(it.glyph)}</span>
+        <span class="tile-n">${esc(T(it.name))}</span><span class="tile-e">${esc(T(it.ev))}</span></div>`).join("")}</div></div>`).join("");
+  }
+  if (id === "iletisim") {
+    wide = true;
+    const dir = [...P.links].sort((x, y) => x.dial - y.dial).map(l => `<li><button type="button" data-d="${l.dial}"><b>${l.dial}</b>${esc(l.label)}</button></li>`).join("")
+      + `<li><button type="button" data-d="10"><b>0</b>${esc(u.operator)}</button></li>`;
+    body = `<div class="ph" id="ph">
+        <div class="ph-stage">${phoneSVG()}<span class="ph-zirr" aria-hidden="true">${u.ring}</span><span class="ph-zirr r2" aria-hidden="true">${u.ring}</span></div>
+        <div class="ph-side">
+          <div class="ph-tkw"><div class="ph-tk" id="ph-tk" aria-live="polite"></div></div>
+          <div class="ph-dir"><h3>${u.dirTitle}</h3><ul>${dir}</ul></div>
+          <p class="ph-help">${esc(u.phHelp)}</p>
+        </div>
+      </div>`;
+  }
+  return `
+    ${art ? `<figure class="p-art" aria-hidden="true"><img src="${a.src}" alt="" style="--ph:${Math.min(100, a.h * 112)}%"></figure>` : ""}
+    <div class="p-wrap${wide ? " wide" : ""}">
+      <button class="back" id="back" type="button">← ${u.backBtn} <kbd>Esc</kbd></button>
+      <header class="p-head">
+        ${art ? `<img class="p-thumb" src="${a.src}" alt="" aria-hidden="true">` : ""}
+        <div class="p-kicker">${esc(P.tag)} · ${esc(T(s.hint))}</div>
+        <h2 class="p-title" id="panel-title">${esc(T(s.label))}</h2>
+      </header>
+      <div class="p-body">${body}</div>
+      <div class="p-foot">${u.updated}: ${fmtDay(P.updated)}</div>
+    </div>`;
+}
+
+/* rotary phone drawing (600×600). Dial centre (300,380); hole d sits at 60−(d−1)·30° clockwise from 12 o'clock; finger stop at 110°. */
+const PH = { cx: 300, cy: 380, rh: 92, stop: 110 };
+const holeAng = d => 60 - (d - 1) * 30;
+const rotFor = d => 50 + (d - 1) * 30;
+const polar = (r, deg) => [PH.cx + r * Math.sin(deg * Math.PI / 180), PH.cy - r * Math.cos(deg * Math.PI / 180)];
+function phoneSVG() {
+  const u = ui(), o = `stroke="${INK}" stroke-width="8" stroke-linejoin="round"`;
+  const holes = [...Array(10)].map((_, k) => polar(PH.rh, holeAng(k + 1)));
+  const digits = holes.map(([x, y], k) => `<text x="${x}" y="${y + 11}" text-anchor="middle" font-size="31" fill="${INK}">${(k + 1) % 10}</text>`).join("");
+  const label = d => { const l = PORTFOLIO.links.find(x => x.dial === d); return d === 10 ? u.operator : l ? l.label : "" };
+  const hits = holes.map(([x, y], k) => `<circle class="ph-hole" data-d="${k + 1}" cx="${x}" cy="${y}" r="26" tabindex="-1" aria-label="${esc(u.holeLabel((k + 1) % 10, label(k + 1)))}"/><circle class="ph-hl" cx="${x}" cy="${y}" r="24"/>`).join("");
+  const [sx1, sy1] = polar(104, PH.stop + 6), [sx2, sy2] = polar(150, PH.stop + 4);
+  let cord = "M118 214";
+  for (let t = 1; t <= 34; t++) { const q = t / 34, x = 118 - 46 * Math.sin(q * Math.PI) + 6 * Math.cos(t * 2.1), y = 214 + q * 262; cord += ` L${(x + 10 * Math.sin(t * 1.9)).toFixed(1)} ${y.toFixed(1)}`; }
+  return `<svg class="ph-svg" id="ph-svg" viewBox="0 0 600 600" role="img" aria-label="${esc(u.phone)}">
+    <defs><mask id="ph-mask" maskUnits="userSpaceOnUse"><circle cx="${PH.cx}" cy="${PH.cy}" r="128" fill="#fff"/>${holes.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="22" fill="#000"/>`).join("")}<circle cx="${PH.cx}" cy="${PH.cy}" r="58" fill="#000"/></mask></defs>
+    <ellipse cx="300" cy="566" rx="270" ry="24" fill="${INK}" opacity=".3"/>
+    <path d="${cord}" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M118 548 L482 548 C506 548 520 530 514 508 L466 262 C460 228 432 206 398 206 L202 206 C168 206 140 228 134 262 L86 508 C80 530 94 548 118 548 Z" fill="var(--pop)" ${o}/>
+    <path d="M398 206 C432 206 460 228 466 262 L514 508 C520 530 506 548 482 548 L430 548 C450 470 446 330 398 206 Z" fill="var(--deep)" opacity=".35"/>
+    <path d="M150 262 C156 236 176 222 202 222" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".7"/>
+    <path d="M96 500 L504 500" stroke="${INK}" stroke-width="6"/>
+    <path d="M160 214 L196 214 L188 168 L168 168 Z M404 214 L440 214 L432 168 L412 168 Z" fill="${INK}"/>
+    <g id="ph-hs">
+      <path d="M140 150 C200 122 400 122 460 150" fill="none" stroke="${INK}" stroke-width="46" stroke-linecap="round"/>
+      <path d="M62 150 C62 108 110 92 160 104 C186 110 196 132 190 160 L178 206 C164 222 96 222 78 204 C66 192 62 172 62 150 Z" fill="${INK}"/>
+      <path d="M538 150 C538 108 490 92 440 104 C414 110 404 132 410 160 L422 206 C436 222 504 222 522 204 C534 192 538 172 538 150 Z" fill="${INK}"/>
+      <path d="M180 132 C240 116 360 116 420 132" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+      <path d="M86 140 C90 120 112 110 136 112" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+    </g>
+    <circle cx="${PH.cx}" cy="${PH.cy}" r="140" fill="${INK}"/>
+    <circle cx="${PH.cx}" cy="${PH.cy}" r="128" fill="var(--paper)"/>
+    ${digits}
+    <g id="ph-wheel">
+      <circle cx="${PH.cx}" cy="${PH.cy}" r="128" fill="${INK}" mask="url(#ph-mask)"/>
+      <circle cx="${PH.cx}" cy="${PH.cy}" r="112" fill="none" stroke="#fff" stroke-width="3" opacity=".18"/>
+      ${holes.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="22" fill="none" stroke="#fff" stroke-width="2.5" opacity=".35"/>`).join("")}
+      ${hits}
+    </g>
+    <circle cx="${PH.cx}" cy="${PH.cy}" r="56" fill="var(--bg)" stroke="${INK}" stroke-width="6"/>
+    <text x="${PH.cx}" y="${PH.cy + 6}" text-anchor="middle" font-size="40" fill="var(--paper)" stroke="${INK}" stroke-width="2" paint-order="stroke">${esc(PORTFOLIO.tag)}</text>
+    <text x="${PH.cx}" y="${PH.cy + 30}" text-anchor="middle" font-size="17" fill="${INK}" letter-spacing="2">9282</text>
+    <path d="M${sx1} ${sy1} L${sx2} ${sy2}" stroke="${INK}" stroke-width="20" stroke-linecap="round"/>
+    <path d="M${sx1} ${sy1} L${sx2} ${sy2}" stroke="#e8e6ee" stroke-width="9" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* ═════════════════════════ scenes ═════════════════════════ */
+const SCENES = {
+  /* PROFILE — an arm slides in with the ID card between two fingers; take it and it spins in the palm while the camera zooms in */
+  profil(p, instant) {
+    const card = $("#idc", p);
+    const flip = () => card.classList.toggle("flipped");
+    card.addEventListener("click", flip);
+    card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+    if (instant) return;
+
+    p.classList.add("pf-pre");
+    const F = card.getBoundingClientRect();
+    const vw = innerWidth, vh = innerHeight, narrow = vw < 620;
+    const mw = narrow ? Math.min(vw * .44, 200) : Math.min(Math.max(vw * .26, 240), 390);
+    const k = mw / F.width, mh = F.height * k;
+    const cx = vw * (narrow ? .38 : .42), cy = vh * .47, rot = -9;
+    const x0 = cx - F.width / 2, y0 = cy - F.height / 2;
+    const tf = (x, y, r, ry, s) => `translate(${x}px,${y}px) perspective(1600px) rotate(${r}deg) rotateY(${ry}deg) scale(${s})`;
+
+    const dim = Object.assign(document.createElement("div"), { className: "pf-dim" });
+    const band = Object.assign(document.createElement("div"), { className: "pf-band" });
+    const fly = document.createElement("div");
+    fly.className = "idc idc-fly pf-move"; fly.innerHTML = card.innerHTML;
+    fly.style.width = F.width + "px"; fly.style.height = F.height + "px";
+    fly.style.transform = tf(x0, y0, rot, 0, k);
+    fly.tabIndex = 0; fly.setAttribute("role", "button"); fly.setAttribute("aria-label", ui().takeCard);
+
+    const rad = rot * Math.PI / 180, ax = cx + Math.cos(rad) * mw / 2, ay = cy + Math.sin(rad) * mw / 2;
+    const sc = Math.min(mw, mh) / 190;
+    const mk = front => {
+      const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      s.setAttribute("viewBox", "0 0 1560 440"); s.setAttribute("aria-hidden", "true");
+      s.classList.add("pf-arm", "pf-move"); if (front) s.classList.add("front");
+      Object.assign(s.style, { left: ax - 300 * sc + "px", top: ay - 212 * sc + "px", width: 1560 * sc + "px", height: 440 * sc + "px", transformOrigin: `${300 * sc}px ${212 * sc}px`, transform: `rotate(${rot}deg)` });
+      s.innerHTML = armSVG(front); return s;
+    };
+    const back = mk(false), front = mk(true);
+    const cta = Object.assign(document.createElement("div"), { className: "pf-cta" });
+    cta.innerHTML = `<i></i>${esc(ui().cta)} <kbd>Enter</kbd>`;
+    cta.style.left = Math.max(16, cx - mw * .55) + "px"; cta.style.top = Math.min(vh - 80, cy + mh / 2 + 40) + "px";
+    p.prepend(dim, band, back, fly, front, cta);
+    requestAnimationFrame(() => fly.focus({ preventScroll: true }));
+
+    let taken = false;
+    const take = async () => {
+      if (taken) return; taken = true; S.sceneKey = null;
+      const ty = [back, front, fly].map(el => { const t = getComputedStyle(el).translate; el.classList.remove("pf-move"); el.style.translate = t && t !== "none" ? t : "0px 0px"; return parseFloat((el.style.translate.split(" ")[1]) || 0) || 0 })[2];
+      back.classList.add("palm"); front.classList.add("palm");
+      cta.remove();
+      p.style.setProperty("--ox", cx + "px"); p.style.setProperty("--oy", cy + "px");
+      p.classList.remove("pf-pre"); p.classList.add("pf-zoom");
+      const G = card.getBoundingClientRect();
+      fly.style.translate = "0px 0px";
+      const dur = 1700;
+      /* palm centre in screen space, then hover the card just above it */
+      const pcx = ax + Math.cos(rad) * 150 * sc, pcy = ay + Math.sin(rad) * 150 * sc + ty;
+      const hcx = Math.max(mw * .62 + 12, Math.min(pcx, vw - mw * .62 - 12)), hcy = Math.max(mh * .6 + 16, pcy - mh * .62);
+      const hx = hcx - F.width / 2, hy = hcy - F.height / 2;
+      const anim = fly.animate([
+        { transform: tf(x0, y0 + ty, rot, 0, k), easing: "cubic-bezier(.3,0,.3,1)" },
+        { transform: tf(hx, hy, -3, 200, k * 1.05), offset: .2, easing: "linear" },
+        { transform: tf(hx, hy - mh * .08, 2, 420, k * 1.12), offset: .4, easing: "cubic-bezier(.55,0,.2,1)" },
+        { transform: tf(G.left, G.top, 0, 720, 1) }
+      ], { duration: dur, fill: "forwards" });
+      [back, front].forEach(el => el.animate([{ opacity: 1, scale: "1" }, { opacity: 1, scale: "1", offset: .4 }, { opacity: 0, scale: "2", translate: "26vw 75vh" }], { duration: dur * .9, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }));
+      setTimeout(() => { band.style.opacity = 0; dim.style.opacity = 0 }, dur * .38);
+      await anim.finished;
+      p.classList.remove("pf-zoom"); p.classList.add("pf-in");
+      [dim, band, back, front, fly].forEach(el => el.remove());
+      $("#back", p).focus({ preventScroll: true });
+    };
+    fly.addEventListener("click", take);
+    S.sceneKey = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); take(); return true } return false };
+  },
+
+  /* EDUCATION — the notebook drops in and its cover opens; page 1 holds the degree, page 2 the certificates */
+  egitim(p, instant) {
+    const book = $("#book", p), narrow = book.classList.contains("narrow");
+    if (narrow) {
+      const prev = $("#bk-prev", p), next = $("#bk-next", p), pg = $("#bk-pg", p);
+      const turn = on => { book.classList.toggle("turned", on); prev.disabled = !on; next.disabled = on; pg.textContent = on ? "2 / 2" : "1 / 2"; };
+      prev.addEventListener("click", () => turn(false)); next.addEventListener("click", () => turn(true));
+      S.sceneKey = e => { if (e.key === "ArrowRight") { turn(true); return true } if (e.key === "ArrowLeft") { turn(false); return true } return false };
+    }
+    if (instant) { book.classList.add("no-tr", "open"); p.classList.add("filled"); requestAnimationFrame(() => requestAnimationFrame(() => book.classList.remove("no-tr"))); return; }
+    p.classList.add("rv"); p.style.setProperty("--rv", "rvSide");
+    book.classList.add("drop");
+    setTimeout(() => p.classList.remove("rv"), 700);
+    setTimeout(() => book.classList.add("open"), 1150);
+    setTimeout(() => p.classList.add("filled"), 2050);
+  },
+
+  /* PROJECTS — a half-circle wheel turns around the back of the head; the card on the right follows */
+  projeler(p, instant) {
+    const st = $("#pj-stage", p), ring = $("#pj-ring", p), head = $("#pj-head", p), info = $("#pj-info", p), pj = $("#pj", p);
+    const nodes = $$(".pj-node", p), n = nodes.length, STEP = n > 4 ? 30 : 36;
+    let A = Math.min(S.pj, n - 1), spin = 0, offs = nodes.map(() => 0), G = null;
+    const offOf = i => { let o = ((i - A) % n + n) % n; if (o > n / 2) o -= n; return o };
+    const layout = () => {
+      const W = st.clientWidth, H = st.clientHeight; if (!W) return;
+      const nar = innerWidth < 900;
+      const hw = Math.min(W * (nar ? .56 : .5), H * .82);
+      const cx = W * (nar ? .6 : .64), cy = H * .47, R = hw * (PJ_HEAD.r + .1) + (nar ? 18 : 30);
+      G = { W, H, cx, cy, R };
+      Object.assign(head.style, { width: hw + "px", left: cx - PJ_HEAD.cx * hw + "px", top: cy - PJ_HEAD.cy * hw * PJ_HEAD.h / PJ_HEAD.w + "px" });
+      st.style.setProperty("--cx", cx + "px"); st.style.setProperty("--cy", cy + "px"); st.style.setProperty("--R", R + "px");
+      const arc = (r, a0, a1) => { const P0 = [cx + r * Math.cos(a0 * Math.PI / 180), cy + r * Math.sin(a0 * Math.PI / 180)], P1 = [cx + r * Math.cos(a1 * Math.PI / 180), cy + r * Math.sin(a1 * Math.PI / 180)]; return `M${P0[0]} ${P0[1]} A${r} ${r} 0 0 1 ${P1[0]} ${P1[1]}` };
+      const len = Math.PI * R * (160 / 180);
+      const ticks = [...Array(36)].map((_, q) => { const a = q * 10 * Math.PI / 180, r1 = R + 26, r2 = R + (q % 3 ? 36 : 48); const d = `M${cx + r1 * Math.cos(a)} ${cy + r1 * Math.sin(a)} L${cx + r2 * Math.cos(a)} ${cy + r2 * Math.sin(a)}`; return `<path d="${d}" stroke="var(--paper)" stroke-width="${q % 3 ? 10 : 13}" stroke-linecap="round"/><path d="${d}" stroke="var(--ink)" stroke-width="${q % 3 ? 4 : 7}" stroke-linecap="round"/>` }).join("");
+      ring.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      ring.innerHTML = `<defs><clipPath id="pj-clip"><rect x="-200" y="-200" width="${cx + 200}" height="${H + 400}"/></clipPath></defs>
+        <path class="band-u" style="--len:${len}" d="${arc(R, 100, 260)}" stroke-width="${nar ? 26 : 34}"/>
+        <path class="band" style="--len:${len}" d="${arc(R, 100, 260)}" stroke-width="${nar ? 16 : 22}"/>
+        <path class="band-in" d="${arc(R, 100, 260)}" stroke-width="${nar ? 6 : 8}"/>
+        <g clip-path="url(#pj-clip)"><g id="pj-ticks" style="transform-origin:${cx}px ${cy}px;transform:rotate(${spin}deg)">${ticks}</g></g>`;
+      const pos = a => [cx + (R + (nar ? 4 : 10)) * Math.cos(a * Math.PI / 180), cy + (R + (nar ? 4 : 10)) * Math.sin(a * Math.PI / 180)];
+      const [ux, uy] = pos(180 + STEP * 2.05), [dx, dy] = pos(180 - STEP * 2.05);
+      Object.assign($("#pj-up", p).style, { left: ux + "px", top: uy + "px" });
+      Object.assign($("#pj-down", p).style, { left: dx + "px", top: dy + "px" });
+    };
+    const render = (dir = 0) => {
+      nodes.forEach((b, i) => {
+        const o = offOf(i), jump = Math.abs(o - offs[i]) > 1;
+        b.classList.toggle("jump", jump && dir !== 0);
+        b.style.setProperty("--a", 180 - o * STEP + "deg");
+        b.classList.toggle("on", o === 0); b.classList.toggle("far", Math.abs(o) > 2);
+        b.setAttribute("aria-current", o === 0 ? "true" : "false");
+        offs[i] = o;
+      });
+      requestAnimationFrame(() => nodes.forEach(b => b.classList.remove("jump")));
+      spin += dir * STEP;
+      const tk = $("#pj-ticks", p); if (tk) tk.style.transform = `rotate(${spin}deg)`;
+      const P = PORTFOLIO.projects[A], u = ui();
+      info.innerHTML = `<div class="pj-card${dir < 0 ? " up" : ""}">
+          <span class="pj-count">${String(A + 1).padStart(2, "0")}/${String(n).padStart(2, "0")}</span>
+          <div><span class="pill">${esc(T(P.type))}</span></div>
+          <h3 class="pj-name">${esc(T(P.name))}</h3>
+          <p class="pj-desc">${esc(T(P.desc))}</p>
+          <div class="chips">${P.tags.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div>
+          ${P.url ? `<a class="lnk" href="${esc(P.url)}" target="_blank" rel="noopener">${u.repo} ↗</a>` : ""}
+        </div>`;
+      S.pj = A;
+    };
+    const step = d => { A = (A + d + n) % n; render(d) };
+    $("#pj-up", p).addEventListener("click", () => step(-1));
+    $("#pj-down", p).addEventListener("click", () => step(1));
+    nodes.forEach((b, i) => b.addEventListener("click", () => { const o = offOf(i); if (o) step(o) }));
+    let lastWheel = 0;
+    st.addEventListener("wheel", e => { if (Math.abs(e.deltaY) < 4) return; e.preventDefault(); const t = performance.now(); if (t - lastWheel < 380) return; lastWheel = t; step(e.deltaY > 0 ? 1 : -1) }, { passive: false });
+    let sy = null;
+    st.addEventListener("pointerdown", e => { sy = e.clientY });
+    st.addEventListener("pointerup", e => { if (sy == null) return; const d = e.clientY - sy; sy = null; if (Math.abs(d) > 36) step(d < 0 ? 1 : -1) });
+    S.sceneKey = e => { if (e.key === "ArrowDown" || e.key === "ArrowRight") { step(1); return true } if (e.key === "ArrowUp" || e.key === "ArrowLeft") { step(-1); return true } return false };
+    const onR = () => layout();
+    addEventListener("resize", onR); S.cleanup.push(() => removeEventListener("resize", onR));
+    if (!instant) { pj.classList.add("intro"); p.classList.add("rv"); p.style.setProperty("--rv", "rvSlash"); setTimeout(() => p.classList.remove("rv"), 700); setTimeout(() => pj.classList.remove("intro"), 2200); }
+    requestAnimationFrame(() => { layout(); render(0) });
+    layout(); render(0);
+  },
+
+  /* CONTACT — rotary phone; as the dial turns, the line passing the finger stop shows up on the ticket */
+  iletisim(p, instant) {
+    const svg = $("#ph-svg", p), wheel = $("#ph-wheel", p), tk = $("#ph-tk", p), ph = $("#ph", p);
+    let r = 0, drag = null, busy = false, shownKey = "";
+    const link = d => PORTFOLIO.links.find(l => l.dial === d);
+    const ticket = (d, state) => {
+      const u = ui(), key = `${d}|${state}`; if (key === shownKey) return; const prevD = shownKey.split("|")[0]; shownKey = key;
+      if (d == null) { tk.innerHTML = `<span class="ph-dig">?</span><span class="ph-line">${esc(u.line)} —</span><span class="ph-label">${esc(u.idleTitle)}</span><span class="ph-handle">${esc(u.idleText)}</span>`; return }
+      const l = link(d), digit = d % 10, live = state === "on";
+      const label = d === 10 ? u.opLabel : l ? l.label : u.emptyLabel;
+      const handle = d === 10 ? u.opText : l ? l.handle : u.empty(digit);
+      tk.innerHTML = `<span class="ph-dig${String(d) !== prevD ? " flip" : ""}">${digit}</span>
+        <span class="ph-line">${esc(u.line)} ${digit} · ${esc(live ? u.connected : u.dialing)}</span>
+        <span class="ph-label">${esc(label)}</span>
+        <span class="ph-handle">${esc(handle)}</span>
+        ${l ? `<a class="lnk${live ? "" : " wait"}" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(u.connect)}: ${esc(l.label)} ↗</a>` : ""}`;
+    };
+    let AC = null;
+    const click = () => { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.type = "square"; o.frequency.value = 1900; g.gain.setValueAtTime(.035, t); g.gain.exponentialRampToValueAtTime(.0001, t + .02); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + .025) } catch (e) {} };
+    const passing = v => v < 36 ? null : Math.max(1, Math.min(10, Math.round((v - 50) / 30) + 1));
+    const setR = (v, live = true) => { r = v; wheel.setAttribute("transform", `rotate(${v.toFixed(2)} ${PH.cx} ${PH.cy})`); if (live) { const d = passing(v); if (d) ticket(d, "dial") } };
+    const tween = (to, speed, onStep) => new Promise(res => {
+      const from = r, dist = Math.abs(to - from), dur = reduce ? 0 : dist / speed * 1000, t0 = performance.now();
+      let lastTick = Math.floor(from / 30);
+      const f = now => { const q = dur ? Math.min(1, (now - t0) / dur) : 1, e = to > from ? 1 - Math.pow(1 - q, 2) : q; const v = from + (to - from) * e; onStep && onStep(v); const tick = Math.floor(v / 30); if (tick !== lastTick && to < from) { click(); lastTick = tick } if (q < 1) requestAnimationFrame(f); else res() };
+      requestAnimationFrame(f);
+    });
+    const goHome = async () => { await tween(0, 420, v => setR(v, false)); busy = false };
+    const commit = d => { ticket(d, "on") };
+    const dial = async d => {
+      if (busy) return; busy = true;
+      await tween(rotFor(d), 520, v => setR(v));
+      setR(rotFor(d)); commit(d);
+      await wait(160); goHome();
+    };
+    const centre = () => { const m = svg.getScreenCTM(); return { x: m.a * PH.cx + m.c * PH.cy + m.e, y: m.b * PH.cx + m.d * PH.cy + m.f } };
+    const angOf = (e, c) => Math.atan2(e.clientX - c.x, -(e.clientY - c.y)) * 180 / Math.PI;
+    svg.addEventListener("pointerdown", e => {
+      const h = e.target.closest(".ph-hole"); if (!h || busy) return;
+      e.preventDefault(); busy = true;
+      const c = centre(); drag = { d: +h.dataset.d, c, last: angOf(e, c), acc: 0, moved: false };
+      try { svg.setPointerCapture(e.pointerId) } catch (er) {}
+    });
+    svg.addEventListener("pointermove", e => {
+      if (!drag) return;
+      const a = angOf(e, drag.c); let da = a - drag.last; if (da > 180) da -= 360; if (da < -180) da += 360;
+      drag.last = a; drag.acc += da; if (Math.abs(drag.acc) > 5) drag.moved = true;
+      setR(Math.max(0, Math.min(rotFor(drag.d), drag.acc)));
+    });
+    const end = () => {
+      if (!drag) return; const { d, moved } = drag; drag = null;
+      if (!moved) { busy = false; dial(d); return }
+      if (r >= rotFor(d) - 12) { setR(rotFor(d)); commit(d) }
+      goHome();
+    };
+    svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", end);
+    $$(".ph-dir button", p).forEach(b => b.addEventListener("click", () => dial(+b.dataset.d)));
+    S.sceneKey = e => { if (/^[0-9]$/.test(e.key)) { dial(e.key === "0" ? 10 : +e.key); return true } return false };
+    ticket(null);
+    if (!instant) {
+      ph.classList.add("intro"); p.classList.add("rv"); p.style.setProperty("--rv", "rvCircle");
+      setTimeout(() => p.classList.remove("rv"), 700);
+      setTimeout(() => ph.classList.add("ring"), 950);
+      setTimeout(() => { ph.classList.remove("ring", "intro"); const h = $('.ph-hole[data-d="1"]', p); h && h.classList.add("hint") }, 2000);
+    }
+  }
+};
+
+/* ═════════════════════════ panels + routing ═════════════════════════ */
+const INTRO = new Set(["profil", "egitim", "projeler", "iletisim"]);
+function clearScene() { S.cleanup.forEach(f => f()); S.cleanup = []; S.sceneKey = null }
+function showPanel(id, instant) {
+  clearScene();
+  const p = $("#panel");
+  p.className = "panel sc-" + id; p.removeAttribute("style");
+  p.innerHTML = panelHTML(id);
+  p.hidden = false; p.scrollTop = 0;
+  $("#back", p).addEventListener("click", () => close());
+  S.open = id; S.narrowAtOpen = isNarrow();
+  $("#stage").setAttribute("aria-hidden", "true");
+  SCENES[id]?.(p, instant || reduce);
+  if (!(id === "profil" && !instant && !reduce)) requestAnimationFrame(() => $("#back", p)?.focus({ preventScroll: true }));
+}
+function hidePanel() {
+  clearScene();
+  const p = $("#panel"), was = S.open;
+  p.hidden = true; p.innerHTML = ""; p.className = "panel"; p.removeAttribute("style"); S.open = null;
+  $("#stage").removeAttribute("aria-hidden");
+  const i = SECTIONS.findIndex(s => s.id === was);
+  if (i >= 0) { select(i); document.querySelectorAll(".mi")[i]?.focus({ preventScroll: true }); }
+}
+addEventListener("resize", () => { if (S.open === "egitim" && isNarrow() !== S.narrowAtOpen) showPanel("egitim", true) });
+
+/* diagonal wipe: runs fn at full cover */
+function wipe(fn) {
+  if (reduce || !document.body.animate) { fn(); return Promise.resolve(); }
+  S.busy = true;
+  const bars = [...$("#wipe").children];
+  const dur = 520;
+  const anims = bars.map((b, k) => b.animate([
+    { transform: "translateX(-160%) skewX(-18deg)" },
+    { transform: "translateX(-14%) skewX(-18deg)", offset: .5 },
+    { transform: "translateX(160%) skewX(-18deg)" }
+  ], { duration: dur, delay: k * 50, easing: "cubic-bezier(.7,0,.3,1)" }));
+  setTimeout(fn, dur * .5 + 100);
+  return anims[anims.length - 1].finished.then(() => { S.busy = false });
+}
+
+function go(id) { if (location.hash.slice(1) === id) route(); else location.hash = id; }
+function close() { if (location.hash) location.hash = ""; else route(); }
+function route(first) {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const valid = SECTIONS.some(s => s.id === id);
+  if (valid && S.open !== id) {
+    const i = SECTIONS.findIndex(s => s.id === id); select(i);
+    if (first || reduce) showPanel(id, true);
+    else if (!S.open && INTRO.has(id)) showPanel(id, false);
+    else wipe(() => showPanel(id, true));
+  } else if (!valid && S.open) {
+    wipe(hidePanel);
+  }
+}
+addEventListener("hashchange", () => route(false));
+
+/* keyboard */
+addEventListener("keydown", e => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (S.open) {
+    if (e.key === "Escape" || e.key === "Backspace" && e.target === document.body) { e.preventDefault(); close(); return; }
+    if (S.sceneKey && !(e.key === "Enter" && e.target.closest("a,button:not(.idc-fly)")) && S.sceneKey(e)) e.preventDefault();
+    return;
+  }
+  if (["ArrowDown", "s", "S"].includes(e.key)) { e.preventDefault(); select(S.sel + 1); document.querySelectorAll(".mi")[S.sel].focus({ preventScroll: true }); }
+  else if (["ArrowUp", "w", "W"].includes(e.key)) { e.preventDefault(); select(S.sel - 1); document.querySelectorAll(".mi")[S.sel].focus({ preventScroll: true }); }
+  else if (e.key === "Enter" && !e.target.closest("button,a")) { go(SECTIONS[S.sel].id); }
+});
+
+/* language */
+function applyLang() {
+  const u = ui();
+  $("#app").setAttribute("lang", S.lang);
+  $("#lang-tr").setAttribute("aria-pressed", S.lang === "tr");
+  $("#lang-en").setAttribute("aria-pressed", S.lang === "en");
+  ransom($("#ransom"), PORTFOLIO.name);
+  $("#role span").textContent = T(PORTFOLIO.role);
+  $("#hb-tag").textContent = u.menu;
+  $("#hb-keys").innerHTML = `<kbd>↑</kbd><kbd>↓</kbd> ${u.select} <kbd>Enter</kbd> ${u.open} <kbd>Esc</kbd> ${u.back}`;
+  $("#navi").setAttribute("aria-label", u.catLabel);
+  $("#cat-name").textContent = T(PORTFOLIO.cat.name);
+  renderMenu(); select(S.sel, true); tickDate(); sayTip(false);
+  if (S.open) showPanel(S.open, true);
+}
+$("#lang-tr").addEventListener("click", () => { S.lang = "tr"; store.set("br-lang", "tr"); applyLang(); });
+$("#lang-en").addEventListener("click", () => { S.lang = "en"; store.set("br-lang", "en"); applyLang(); });
+
+/* boot */
+S.lang = store.get("br-lang") === "en" ? "en" : "tr";
+applyLang();
+setArt("hero"); /* idle pose on first view; moving through the menu swaps it */
+setInterval(tickDate, 60000);
+route(true);
+</script>
+
+</html>
